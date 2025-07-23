@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import Draft from "./pages/Draft";
 import Edit from "./pages/Edit";
 import Entities from "./pages/Entities";
+import Notability from "./pages/Notability";
 import "./App.css";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Route path="/draft" element={<Draft />} />
           <Route path="/edit" element={<Edit />} />
           <Route path="/entities" element={<Entities />} />
+          <Route path="/notability" element={<Notability />} />
         </Routes>
       </main>
     </div>

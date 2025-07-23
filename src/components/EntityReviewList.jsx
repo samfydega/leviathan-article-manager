@@ -4,10 +4,8 @@ import { Check, Archive, Trash2, ExternalLink } from "lucide-react";
 export default function EntityReviewList({
   entities,
   originalText,
-  onEntityTriage,
   onEntityProcessed,
   onCancel,
-  triagedEntities,
 }) {
   const [entityErrors, setEntityErrors] = useState({});
   const [processedEntities, setProcessedEntities] = useState(new Set());
@@ -100,9 +98,6 @@ export default function EntityReviewList({
       if (onEntityProcessed) {
         onEntityProcessed(entityIndex);
       }
-
-      // Also call the original triage function for compatibility
-      onEntityTriage(entityIndex, status);
     } catch (error) {
       console.error(`Error submitting entity ${entityIndex}:`, error);
       setEntityErrors((prev) => ({
@@ -143,8 +138,7 @@ export default function EntityReviewList({
     <div className="mt-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-inter font-semibold text-gray-900">
-          Detected Entities ({triagedEntities.size + processedEntities.size}/
-          {entities.length} triaged)
+          Detected Entities ({processedEntities.size}/{entities.length} triaged)
         </h3>
         <button
           onClick={onCancel}
@@ -161,7 +155,7 @@ export default function EntityReviewList({
           const colorClass =
             typeColors[entity.type] ||
             "bg-gray-100 text-gray-800 border-gray-200";
-          const isTriaged = triagedEntities.has(index);
+          const isTriaged = processedEntities.has(index);
           const isProcessed = processedEntities.has(index);
 
           // Don't render processed entities

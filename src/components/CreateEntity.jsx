@@ -8,7 +8,7 @@ export default function CreateEntity({ onBack }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [detectedEntities, setDetectedEntities] = useState(null);
   const [originalText, setOriginalText] = useState("");
-  const [triagedEntities, setTriagedEntities] = useState(new Set());
+
   const [processedEntities, setProcessedEntities] = useState(new Set());
   const [showNoEntitiesMessage, setShowNoEntitiesMessage] = useState(false);
   const noEntitiesTimeoutRef = useRef(null);
@@ -24,18 +24,8 @@ export default function CreateEntity({ onBack }) {
     setDetectedEntities(null);
     setOriginalText("");
     setErrorMessage("");
-    setTriagedEntities(new Set());
     setProcessedEntities(new Set());
     setShowNoEntitiesMessage(false);
-  };
-
-  // Function to handle entity triage
-  const handleEntityTriage = (entityIndex, action) => {
-    setTriagedEntities((prev) => new Set([...prev, entityIndex]));
-    console.log(
-      `Entity ${entityIndex} ${action}:`,
-      detectedEntities[entityIndex]
-    );
   };
 
   // Function to handle successful entity processing
@@ -45,7 +35,7 @@ export default function CreateEntity({ onBack }) {
 
   // Check if all entities are triaged
   const allEntitiesTriaged = detectedEntities
-    ? triagedEntities.size + processedEntities.size === detectedEntities.length
+    ? processedEntities.size === detectedEntities.length
     : true;
 
   // Helper function for processing entities
@@ -217,10 +207,8 @@ export default function CreateEntity({ onBack }) {
               <EntityReviewList
                 entities={detectedEntities}
                 originalText={originalText}
-                onEntityTriage={handleEntityTriage}
                 onEntityProcessed={handleEntityProcessed}
                 onCancel={handleNewAnalysis}
-                triagedEntities={triagedEntities}
               />
             )}
           </div>

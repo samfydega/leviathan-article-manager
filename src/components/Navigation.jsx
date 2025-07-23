@@ -1,4 +1,4 @@
-import { Home, Database, FileText, Edit3 } from "lucide-react";
+import { Home, Database, FileText, Edit3, Star } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 function Navigation() {
@@ -8,6 +8,7 @@ function Navigation() {
       items: [
         { path: "/", icon: Home, label: "Home" },
         { path: "/entities", icon: Database, label: "Entities" },
+        { path: "/notability", icon: Star, label: "Notability" },
         { path: "/draft", icon: FileText, label: "Draft" },
         { path: "/edit", icon: Edit3, label: "Edit" },
       ],
