@@ -1,34 +1,93 @@
 import { useState, useEffect } from "react";
+import ReadyToProcessSection from "../components/notability/ReadyToProcessSection";
+import ProcessingSection from "../components/notability/ProcessingSection";
+import FinishedSection from "../components/notability/FinishedSection";
 
 export default function Notability() {
-  const [processingEntities, setProcessingEntities] = useState([]);
+  const [queueEntities, setQueueEntities] = useState([]);
+  const [researchingEntities, setResearchingEntities] = useState([]);
+  const [researchedEntities, setResearchedEntities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [researchLoading, setResearchLoading] = useState({});
+  const [researchMessages, setResearchMessages] = useState({});
+  const [showQueue, setShowQueue] = useState(true);
+  const [showResearching, setShowResearching] = useState(true);
+  const [showResearched, setShowResearched] = useState(true);
 
-  // Fetch processing entities on component mount
+  // Fetch all entities on component mount
   useEffect(() => {
-    fetchProcessingEntities();
+    fetchAllEntities();
   }, []);
 
-  const fetchProcessingEntities = async () => {
+  const fetchAllEntities = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        "http://localhost:8000/entities/status/processing"
-      );
+
+      const [queueResponse, researchingResponse, researchedResponse] =
+        await Promise.all([
+          fetch("http://localhost:8000/entities/status/queue"),
+          fetch("http://localhost:8000/entities/status/researching"),
+          fetch("http://localhost:8000/entities/status/researched"),
+        ]);
+
+      if (
+        !queueResponse.ok ||
+        !researchingResponse.ok ||
+        !researchedResponse.ok
+      ) {
+        throw new Error("Failed to fetch entities");
+      }
+
+      const [queueData, researchingData, researchedData] = await Promise.all([
+        queueResponse.json(),
+        researchingResponse.json(),
+        researchedResponse.json(),
+      ]);
+
+      setQueueEntities(queueData);
+      setResearchingEntities(researchingData);
+      setResearchedEntities(researchedData);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching entities:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResearch = async (entityId) => {
+    try {
+      setResearchLoading((prev) => ({ ...prev, [entityId]: true }));
+      setResearchMessages((prev) => ({ ...prev, [entityId]: null }));
+
+      const response = await fetch(`http://localhost:8000/notability/${entityId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
 
-      const data = await response.json();
-      setProcessingEntities(data);
-      setError(null);
+      setResearchMessages((prev) => ({
+        ...prev,
+        [entityId]: { type: "success", text: "Job submitted" },
+      }));
+      
+      // Refresh all entities to move this entity from Queue to Researching
+      await fetchAllEntities();
     } catch (err) {
-      console.error("Error fetching processing entities:", err);
-      setError(err.message);
+      console.error("Error submitting research job:", err);
+      setResearchMessages((prev) => ({
+        ...prev,
+        [entityId]: { type: "error", text: err.message },
+      }));
     } finally {
-      setLoading(false);
+      setResearchLoading((prev) => ({ ...prev, [entityId]: false }));
     }
   };
 
@@ -41,56 +100,34 @@ export default function Notability() {
         Manage notability evaluations and make article creation decisions.
       </p>
 
-      <div className="mt-8">
-        <h2 className="text-2xl font-playfair font-medium text-gray-800 mb-4">
-          Ready to process
-        </h2>
+      <ReadyToProcessSection
+        entities={queueEntities}
+        loading={loading}
+        error={error}
+        researchLoading={researchLoading}
+        researchMessages={researchMessages}
+        onResearch={handleResearch}
+        showList={showQueue}
+        onToggleList={() => setShowQueue(!showQueue)}
+      />
 
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-8 text-gray-500 font-inter">
-            Loading processing entities...
-          </div>
-        )}
+      <ProcessingSection
+        entities={researchingEntities}
+        loading={loading}
+        error={error}
+        showList={showResearching}
+        onToggleList={() => setShowResearching(!showResearching)}
+        onStatusUpdate={fetchAllEntities}
+      />
 
-        {/* Error State */}
-        {error && (
-          <div className="text-center py-8 text-red-600 font-inter">
-            Error loading entities: {error}
-          </div>
-        )}
-
-        {/* Entities List */}
-        {!loading && !error && (
-          <>
-            {processingEntities.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 font-inter">
-                🎉 No entities ready for processing!
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {processingEntities.map((entity, index) => (
-                  <div
-                    key={entity.id}
-                    className="border border-gray-200 bg-white rounded-lg p-4 transition-all duration-200"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-inter font-medium text-gray-900">
-                        {entity.name}
-                      </span>
-                    </div>
-
-                    {/* Context snippet */}
-                    <div className="mb-4 p-3 bg-gray-50 rounded text-sm font-inter leading-relaxed">
-                      <span className="text-gray-600">{entity.context}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      <FinishedSection
+        entities={researchedEntities}
+        loading={loading}
+        error={error}
+        showList={showResearched}
+        onToggleList={() => setShowResearched(!showResearched)}
+        onStatusUpdate={fetchAllEntities}
+      />
     </div>
   );
 }

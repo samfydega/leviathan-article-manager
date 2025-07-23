@@ -114,12 +114,12 @@ export default function QueuedEntitiesList() {
     submitEntityAction(entityId, entityIndex, "backlog");
   };
 
-  const handleDelete = (entityId, entityIndex) => {
-    submitEntityAction(entityId, entityIndex, "delete");
+  const handleIgnore = (entityId, entityIndex) => {
+    submitEntityAction(entityId, entityIndex, "ignore");
   };
 
-  const handleProcess = (entityId, entityIndex) => {
-    submitEntityAction(entityId, entityIndex, "processing");
+  const handleRequeue = (entityId, entityIndex) => {
+    submitEntityAction(entityId, entityIndex, "queue");
   };
 
   // Helper function to generate Wikipedia URL
@@ -144,7 +144,7 @@ export default function QueuedEntitiesList() {
   if (error) {
     return (
       <div className="mt-8">
-        <h2 className="text-2xl font-playfair font-semibold text-black mb-4 tracking-tighter">
+        <h2 className="text-2xl font-inter font-semibold text-black mb-4 tracking-tighter">
           Queued
         </h2>
         <div className="text-center text-red-600 font-inter py-8">
@@ -156,13 +156,13 @@ export default function QueuedEntitiesList() {
 
   return (
     <div className="mt-8">
-      <h2 className="text-2xl  font-medium text-black mb-4 tracking-tighter">
+      <h2 className="text-2xl font-inter font-medium text-black mb-4 tracking-tighter">
         Queued
       </h2>
 
       {queuedEntities.length === 0 ? (
         <div className="text-center text-gray-500 font-inter py-8">
-          🎉 Yay! The queue is cleared!
+          🎉 No entities in queue!
         </div>
       ) : (
         <div className="space-y-4">
@@ -210,11 +210,11 @@ export default function QueuedEntitiesList() {
                 {/* Action buttons */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleProcess(entity.id, index)}
+                    onClick={() => handleRequeue(entity.id, index)}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-green-50 hover:text-green-700 transition-colors duration-150 group"
                   >
                     <Play className="w-4 h-4 text-green-600 group-hover:text-green-700 transition-colors duration-150" />
-                    Process
+                    Re-queue
                   </button>
 
                   <button
@@ -226,11 +226,11 @@ export default function QueuedEntitiesList() {
                   </button>
 
                   <button
-                    onClick={() => handleDelete(entity.id, index)}
+                    onClick={() => handleIgnore(entity.id, index)}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-red-50 hover:text-red-700 transition-colors duration-150 group"
                   >
                     <Trash2 className="w-4 h-4 text-red-600 group-hover:text-red-700 transition-colors duration-150" />
-                    Delete
+                    Ignore
                   </button>
                 </div>
 

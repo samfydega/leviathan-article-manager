@@ -116,8 +116,8 @@ export default function EntityReviewList({
     submitEntity(entityIndex, "backlog");
   };
 
-  const handleDelete = (entityIndex) => {
-    submitEntity(entityIndex, "delete");
+  const handleIgnore = (entityIndex) => {
+    submitEntity(entityIndex, "ignore");
   };
 
   // Helper function to generate Wikipedia URL
@@ -230,11 +230,11 @@ export default function EntityReviewList({
                     </button>
 
                     <button
-                      onClick={() => handleDelete(index)}
+                      onClick={() => handleIgnore(index)}
                       className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-red-50 hover:text-red-700 transition-colors duration-150 group"
                     >
                       <Trash2 className="w-4 h-4 text-red-600 group-hover:text-red-700 transition-colors duration-150" />
-                      Delete
+                      Ignore
                     </button>
                   </>
                 )}
