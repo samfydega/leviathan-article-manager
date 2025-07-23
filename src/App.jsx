@@ -3,6 +3,7 @@ import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
 import Draft from "./pages/Draft";
 import Edit from "./pages/Edit";
+import Entities from "./pages/Entities";
 import "./App.css";
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/draft" element={<Draft />} />
           <Route path="/edit" element={<Edit />} />
+          <Route path="/entities" element={<Entities />} />
         </Routes>
       </main>
     </div>

@@ -97,7 +97,7 @@ function Home() {
       </h1>
 
       {/* Two LineGraphs side by side */}
-      <section className="mb-10">
+      {/* <section className="mb-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow-sm">
             <LineGraph
@@ -108,13 +108,10 @@ function Home() {
               height={300}
             />
 
-            {/* Dividing line */}
             <div className="border-t border-gray-200 mx-4"></div>
 
-            {/* Article Performance Section */}
             <div className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Top 5 Performers */}
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-3">
                     Top 5 Performers
@@ -139,7 +136,6 @@ function Home() {
                   </div>
                 </div>
 
-                {/* Bottom 5 Performers */}
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-3">
                     Bottom 5 Performers
@@ -177,9 +173,9 @@ function Home() {
             />
           </div>
         </div>
-      </section>
+      </section> */}
 
-      <div className="space-y-8 mt-10">
+      {/* <div className="space-y-8 mt-10">
         <section>
           <h2 className="text-2xl font-inter font-medium text-gray-800 mb-4">
             Canonical Entities
@@ -238,7 +234,6 @@ function Home() {
             ))}
           </div>
 
-          {/* Queue Summary */}
           <div className="mt-6 bg-gray-50 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <div>
@@ -283,7 +278,7 @@ function Home() {
             <p className="text-gray-600">Browse your published articles.</p>
           </div>
         </section>
-      </div>
+      </div> */}
     </div>
   );
 }
