@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from "lucide-react";
 import ReadyToProcessList from './ReadyToProcessList';
 
 export default function ReadyToProcessSection({ 
@@ -13,14 +14,19 @@ export default function ReadyToProcessSection({
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-inter font-medium text-black mb-4 tracking-tighter">
+        <h2 className="text-2xl font-inter font-medium text-black tracking-tighter">
           Queue
         </h2>
         <button
           onClick={onToggleList}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150"
+          className="flex items-center gap-1 px-2 py-1 text-sm font-inter text-gray-600 hover:text-gray-900 transition-colors duration-150"
         >
-          {showList ? "Collapse" : "Show"}
+          {showList ? (
+            <ChevronDown className="w-4 h-4" />
+          ) : (
+            <ChevronRight className="w-4 h-4" />
+          )}
+          {showList ? "Hide" : "Show"}
         </button>
       </div>
 
