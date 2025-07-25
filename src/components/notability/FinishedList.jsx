@@ -87,30 +87,22 @@ export default function FinishedList({ entities, onStatusUpdate }) {
     }
   };
 
-  // Get reliability color and icon
-  const getReliabilityIndicator = (reliability) => {
-    switch (reliability) {
-      case "HIGH_QUALITY":
-        return {
-          color: "text-green-600",
-          bgColor: "bg-green-50",
-          icon: CheckCircle,
-        };
-      case "MIXED":
-        return {
-          color: "text-yellow-600",
-          bgColor: "bg-yellow-50",
-          icon: AlertTriangle,
-        };
-      case "QUESTIONABLE":
-      case "UNRELIABLE":
-        return { color: "text-red-600", bgColor: "bg-red-50", icon: XCircle };
-      default:
-        return {
-          color: "text-gray-600",
-          bgColor: "bg-gray-50",
-          icon: AlertTriangle,
-        };
+  // Get meets standards color and icon
+  const getMeetsStandardsIndicator = (meetsStandards) => {
+    if (meetsStandards) {
+      return {
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+        icon: CheckCircle,
+        text: "Meets Standards",
+      };
+    } else {
+      return {
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+        icon: XCircle,
+        text: "Doesn't Meet Standards",
+      };
     }
   };
 
@@ -230,30 +222,33 @@ export default function FinishedList({ entities, onStatusUpdate }) {
   const handleDocTypeChange = (entityId, type) => {
     setDocTypes((prev) => ({
       ...prev,
-      [entityId]: type
+      [entityId]: type,
     }));
     setDraftErrors((prev) => ({ ...prev, [entityId]: null }));
   };
 
   // Handle Archive action
   const handleArchive = async (entityId) => {
-    setArchiveLoading(prev => ({ ...prev, [entityId]: true }));
-    
+    setArchiveLoading((prev) => ({ ...prev, [entityId]: true }));
+
     try {
-      const response = await fetch(`http://localhost:8000/entities/${entityId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: "backlog"
-        }),
-      });
-      
+      const response = await fetch(
+        `http://localhost:8000/entities/${entityId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "backlog",
+          }),
+        }
+      );
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
-      
+
       console.log(`Entity ${entityId} archived to backlog`);
       if (onStatusUpdate) {
         onStatusUpdate();
@@ -261,7 +256,7 @@ export default function FinishedList({ entities, onStatusUpdate }) {
     } catch (error) {
       console.error(`Error archiving entity ${entityId}:`, error);
     } finally {
-      setArchiveLoading(prev => ({ ...prev, [entityId]: false }));
+      setArchiveLoading((prev) => ({ ...prev, [entityId]: false }));
     }
   };
 
@@ -281,26 +276,25 @@ export default function FinishedList({ entities, onStatusUpdate }) {
 
     try {
       // Make the API call to draft the article
-      const response = await fetch(
-        `http://localhost:8000/drafts/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ 
-            id: entityId,
-            type: selectedType 
-          }),
-        }
-      );
+      const response = await fetch(`http://localhost:8000/drafts/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: entityId,
+          type: selectedType,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
 
       // On success, refresh the parent data to update the entity list
-      console.log(`Draft article successful for entity ${entityId} as ${selectedType}`);
+      console.log(
+        `Draft article successful for entity ${entityId} as ${selectedType}`
+      );
       if (onStatusUpdate) {
         onStatusUpdate();
       }
@@ -509,20 +503,21 @@ export default function FinishedList({ entities, onStatusUpdate }) {
                       </div>
                     )}
                     {/* Archive button for Fails Notability */}
-                    {entity.notability_status !== "meets" && entity.notability_status !== "exceeds" && (
-                      <div className="mt-4 flex items-center gap-2">
-                        <button
-                          className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                          onClick={() => handleArchive(entity.id)}
-                          disabled={archiveLoading[entity.id]}
-                        >
-                          {archiveLoading[entity.id] && (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          )}
-                          Archive
-                        </button>
-                      </div>
-                    )}
+                    {entity.notability_status !== "meets" &&
+                      entity.notability_status !== "exceeds" && (
+                        <div className="mt-4 flex items-center gap-2">
+                          <button
+                            className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            onClick={() => handleArchive(entity.id)}
+                            disabled={archiveLoading[entity.id]}
+                          >
+                            {archiveLoading[entity.id] && (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            )}
+                            Archive
+                          </button>
+                        </div>
+                      )}
                   </div>
                 )}
               </div>
@@ -556,10 +551,10 @@ export default function FinishedList({ entities, onStatusUpdate }) {
                     </h4>
 
                     {sources.map((source, index) => {
-                      const reliability = getReliabilityIndicator(
-                        source.reliability
+                      const meetsStandards = getMeetsStandardsIndicator(
+                        source.meets_standards
                       );
-                      const ReliabilityIcon = reliability.icon;
+                      const MeetsStandardsIcon = meetsStandards.icon;
 
                       return (
                         <div
@@ -578,29 +573,17 @@ export default function FinishedList({ entities, onStatusUpdate }) {
                             </a>
 
                             <div
-                              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${reliability.color} ${reliability.bgColor}`}
+                              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${meetsStandards.color} ${meetsStandards.bgColor}`}
                             >
-                              <ReliabilityIcon className="w-3 h-3" />
-                              {source.reliability.replace("_", " ")}
+                              <MeetsStandardsIcon className="w-3 h-3" />
+                              {meetsStandards.text}
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 font-inter">
-                            <div>
-                              <span className="font-medium">Published:</span>{" "}
-                              {source.publish_date}
-                            </div>
-                            <div>
-                              <span className="font-medium">Independence:</span>{" "}
-                              {source.independence.replace("_", " ")}
-                            </div>
-                            <div>
-                              <span className="font-medium">Proximity:</span>{" "}
-                              {source.proximity}
-                            </div>
-                            <div>
-                              <span className="font-medium">Depth:</span>{" "}
-                              {source.depth}
+                          <div className="text-sm text-gray-600 font-inter mt-2">
+                            <div className="font-medium mb-1">Explanation:</div>
+                            <div className="leading-relaxed">
+                              {source.explanation}
                             </div>
                           </div>
                         </div>
