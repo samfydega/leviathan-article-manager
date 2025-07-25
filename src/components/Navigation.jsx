@@ -18,6 +18,11 @@ function Navigation() {
   return (
     <nav className="w-64 bg-gray-50 border-r border-gray-200 h-screen overflow-y-auto">
       <div className="p-6 border-b border-gray-200">
+        <img
+          src="./serpent3.png"
+          alt="Leviathan Encyclopedia"
+          className="w-10 h-10"
+        />
         <h1 className="text-3xl font-playfair font-medium text-[#554348] tracking-tighter leading-7">
           Leviathan Encyclopedia
         </h1>

@@ -42,7 +42,7 @@ export default function Draft() {
       const data = await response.json();
       setDraftingEntities(data);
       setDraftingError(null);
-      
+
       // Fetch progress for all entities
       if (data.length > 0) {
         await fetchProgressForEntities(data);
@@ -82,13 +82,18 @@ export default function Draft() {
   const fetchProgressForEntities = async (entities) => {
     const progressPromises = entities.map(async (entity) => {
       try {
-        const response = await fetch(`http://localhost:8000/drafts/${entity.id}/check-progress`);
+        const response = await fetch(
+          `http://localhost:8000/drafts/${entity.id}/check-progress`
+        );
         if (response.ok) {
           const data = await response.json();
           return { entityId: entity.id, data };
         }
       } catch (error) {
-        console.error(`Error fetching progress for entity ${entity.id}:`, error);
+        console.error(
+          `Error fetching progress for entity ${entity.id}:`,
+          error
+        );
       }
       return { entityId: entity.id, data: null };
     });
@@ -108,17 +113,22 @@ export default function Draft() {
     try {
       setLoadingDocument(true);
       setDocumentError(null);
-      
-      const response = await fetch(`http://localhost:8000/drafts/articles/${entityId}`);
-      
+
+      const response = await fetch(
+        `http://localhost:8000/drafts/articles/${entityId}`
+      );
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
-      
+
       const data = await response.json();
       setDocumentContent(data);
     } catch (error) {
-      console.error(`Error fetching document content for entity ${entityId}:`, error);
+      console.error(
+        `Error fetching document content for entity ${entityId}:`,
+        error
+      );
       setDocumentError(error.message);
     } finally {
       setLoadingDocument(false);
@@ -135,19 +145,22 @@ export default function Draft() {
   // Handle Re-draft action
   const handleRedraft = async (entityId) => {
     setRedraftLoading(true);
-    
+
     try {
-      const response = await fetch(`http://localhost:8000/drafts/${entityId}/draft-document`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      
+      const response = await fetch(
+        `http://localhost:8000/drafts/${entityId}/draft-document`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
-      
+
       console.log(`Re-draft successful for entity ${entityId}`);
       // Refresh the document content to show the new draft
       await fetchDocumentContent(entityId);
@@ -160,28 +173,34 @@ export default function Draft() {
 
   // Handle Draft into Document action
   const handleDraftIntoDocument = async (entityId) => {
-    setDraftDocumentLoading(prev => ({ ...prev, [entityId]: true }));
-    
+    setDraftDocumentLoading((prev) => ({ ...prev, [entityId]: true }));
+
     try {
-      const response = await fetch(`http://localhost:8000/drafts/${entityId}/draft-document`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      
+      const response = await fetch(
+        `http://localhost:8000/drafts/${entityId}/draft-document`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
-      
+
       console.log(`Draft into document successful for entity ${entityId}`);
       // Refresh both lists since the entity might move to drafted status
       await fetchDraftingEntities();
       await fetchDraftedEntities();
     } catch (error) {
-      console.error(`Error drafting into document for entity ${entityId}:`, error);
+      console.error(
+        `Error drafting into document for entity ${entityId}:`,
+        error
+      );
     } finally {
-      setDraftDocumentLoading(prev => ({ ...prev, [entityId]: false }));
+      setDraftDocumentLoading((prev) => ({ ...prev, [entityId]: false }));
     }
   };
 
@@ -193,7 +212,7 @@ export default function Draft() {
 
   return (
     <div className="p-14">
-      <h1 className="text-4xl font-playfair font-semibold text-black mb-2 tracking-tighter">
+      <h1 className="text-4xl font-playfair font-semibold text-[#554348] mb-2 tracking-tighter">
         Drafts
       </h1>
       <p className="font-inter font-light">Manage your draft documents here.</p>
@@ -243,68 +262,77 @@ export default function Draft() {
                     </div>
                   )}
 
-                {!loadingDrafting && !draftingError && draftingEntities.length > 0 && (
-                  <div className="space-y-3">
-                    {draftingEntities.map((entity) => {
-                      const progress = progressData[entity.id];
-                      return (
-                        <div
-                          key={entity.id}
-                          className="border border-gray-200 bg-white rounded-lg p-4"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-inter font-medium text-gray-900">
-                              {entity.name}
-                            </span>
-                            {progress && (
-                              <span className="text-sm font-inter text-gray-500">
-                                {progress.completed_sections}/{progress.total_sections}{" "}
-                                sections
+                {!loadingDrafting &&
+                  !draftingError &&
+                  draftingEntities.length > 0 && (
+                    <div className="space-y-3">
+                      {draftingEntities.map((entity) => {
+                        const progress = progressData[entity.id];
+                        return (
+                          <div
+                            key={entity.id}
+                            className="border border-gray-200 bg-white rounded-lg p-4"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-inter font-medium text-gray-900">
+                                {entity.name}
                               </span>
-                            )}
-                          </div>
-
-                          {progress ? (
-                            <div className="space-y-2">
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${progress.progress_percentage}%` }}
-                                ></div>
-                              </div>
-                              <div className="flex justify-between text-xs font-inter text-gray-600">
-                                <span>
-                                  {progress.progress_percentage.toFixed(1)}% complete
+                              {progress && (
+                                <span className="text-sm font-inter text-gray-500">
+                                  {progress.completed_sections}/
+                                  {progress.total_sections} sections
                                 </span>
-                                <span>{progress.pending_sections} pending</span>
-                              </div>
-                              
-                              {progress.is_complete && (
-                                <div className="mt-3 pt-2 border-t border-gray-100">
-                                  <button
-                                    className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                    onClick={() => handleDraftIntoDocument(entity.id)}
-                                    disabled={draftDocumentLoading[entity.id]}
-                                  >
-                                    {draftDocumentLoading[entity.id] && (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                    )}
-                                    Draft into document
-                                  </button>
-                                </div>
                               )}
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-2 text-sm font-inter text-gray-500">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              <span>Loading progress...</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+
+                            {progress ? (
+                              <div className="space-y-2">
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    style={{
+                                      width: `${progress.progress_percentage}%`,
+                                    }}
+                                  ></div>
+                                </div>
+                                <div className="flex justify-between text-xs font-inter text-gray-600">
+                                  <span>
+                                    {progress.progress_percentage.toFixed(1)}%
+                                    complete
+                                  </span>
+                                  <span>
+                                    {progress.pending_sections} pending
+                                  </span>
+                                </div>
+
+                                {progress.is_complete && (
+                                  <div className="mt-3 pt-2 border-t border-gray-100">
+                                    <button
+                                      className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                      onClick={() =>
+                                        handleDraftIntoDocument(entity.id)
+                                      }
+                                      disabled={draftDocumentLoading[entity.id]}
+                                    >
+                                      {draftDocumentLoading[entity.id] && (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      )}
+                                      Draft into document
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm font-inter text-gray-500">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>Loading progress...</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                 {/* Refresh button */}
                 <div className="mt-4 flex justify-start">
@@ -313,7 +341,11 @@ export default function Draft() {
                     disabled={loadingDrafting}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <RefreshCw className={`w-4 h-4 ${loadingDrafting ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`w-4 h-4 ${
+                        loadingDrafting ? "animate-spin" : ""
+                      }`}
+                    />
                     Refresh
                   </button>
                 </div>
@@ -339,7 +371,7 @@ export default function Draft() {
                 {draftsCollapsed ? "Show" : "Hide"}
               </button>
             </div>
-            
+
             {!draftsCollapsed && (
               <>
                 {loadingDrafted && (
@@ -355,32 +387,36 @@ export default function Draft() {
                   </div>
                 )}
 
-                {!loadingDrafted && !draftedError && draftedEntities.length === 0 && (
-                  <div className="p-4 text-gray-500 font-inter">
-                    No drafted entities available.
-                  </div>
-                )}
+                {!loadingDrafted &&
+                  !draftedError &&
+                  draftedEntities.length === 0 && (
+                    <div className="p-4 text-gray-500 font-inter">
+                      No drafted entities available.
+                    </div>
+                  )}
 
-                {!loadingDrafted && !draftedError && draftedEntities.length > 0 && (
-                  <div className="space-y-3">
-                    {draftedEntities.map((entity) => (
-                      <div
-                        key={entity.id}
-                        className="border border-gray-200 bg-white rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
-                        onClick={() => handleSelectDocument(entity)}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-inter font-medium text-gray-900">
-                            {entity.name}
-                          </span>
-                          <span className="text-sm font-inter text-green-600 bg-green-50 px-2 py-1 rounded">
-                            Ready for editing
-                          </span>
+                {!loadingDrafted &&
+                  !draftedError &&
+                  draftedEntities.length > 0 && (
+                    <div className="space-y-3">
+                      {draftedEntities.map((entity) => (
+                        <div
+                          key={entity.id}
+                          className="border border-gray-200 bg-white rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+                          onClick={() => handleSelectDocument(entity)}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-inter font-medium text-gray-900">
+                              {entity.name}
+                            </span>
+                            <span className="text-sm font-inter text-green-600 bg-green-50 px-2 py-1 rounded">
+                              Ready for editing
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
 
                 {/* Refresh button for drafted entities */}
                 <div className="mt-4 flex justify-start">
@@ -389,7 +425,11 @@ export default function Draft() {
                     disabled={loadingDrafted}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <RefreshCw className={`w-4 h-4 ${loadingDrafted ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`w-4 h-4 ${
+                        loadingDrafted ? "animate-spin" : ""
+                      }`}
+                    />
                     Refresh
                   </button>
                 </div>
@@ -412,9 +452,7 @@ export default function Draft() {
               disabled={redraftLoading}
               className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {redraftLoading && (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              )}
+              {redraftLoading && <Loader2 className="w-4 h-4 animate-spin" />}
               Re-draft
             </button>
           </div>
@@ -443,19 +481,27 @@ export default function Draft() {
                     const textContent = documentContent.text;
                     const parsedContent = JSON.parse(textContent);
                     const blocks = parsedContent.blocks;
-                    
+
                     // Extract references from the References section
-                    const referencesBlock = blocks.find(block => 
-                      block.type === 'heading2' && block.content === 'References'
+                    const referencesBlock = blocks.find(
+                      (block) =>
+                        block.type === "heading2" &&
+                        block.content === "References"
                     );
                     const referencesIndex = blocks.indexOf(referencesBlock);
                     const references = {};
-                    
-                    if (referencesIndex !== -1 && referencesIndex + 1 < blocks.length) {
+
+                    if (
+                      referencesIndex !== -1 &&
+                      referencesIndex + 1 < blocks.length
+                    ) {
                       const referencesContent = blocks[referencesIndex + 1];
-                      if (referencesContent && referencesContent.type === 'paragraph') {
-                        const lines = referencesContent.content.split('\n');
-                        lines.forEach(line => {
+                      if (
+                        referencesContent &&
+                        referencesContent.type === "paragraph"
+                      ) {
+                        const lines = referencesContent.content.split("\n");
+                        lines.forEach((line) => {
                           const match = line.match(/^(\d+)\.\s+(.+)$/);
                           if (match) {
                             references[match[1]] = match[2];
@@ -463,7 +509,7 @@ export default function Draft() {
                         });
                       }
                     }
-                    
+
                     // Function to convert citations to links
                     const convertCitationsToLinks = (text) => {
                       return text.replace(/\[(\d+)\]/g, (match, num) => {
@@ -474,45 +520,62 @@ export default function Draft() {
                         return match;
                       });
                     };
-                    
+
                     return blocks && blocks.length > 0 ? (
                       <div className="space-y-4">
                         {blocks.map((block, index) => {
-                          if (block.type === 'heading') {
+                          if (block.type === "heading") {
                             return (
-                              <h3 key={index} className="text-2xl font-inter font-semibold text-gray-900 mt-8 mb-4">
+                              <h3
+                                key={index}
+                                className="text-2xl font-inter font-semibold text-gray-900 mt-8 mb-4"
+                              >
                                 {block.content}
                               </h3>
                             );
-                          } else if (block.type === 'heading2') {
+                          } else if (block.type === "heading2") {
                             return (
-                              <h4 key={index} className="text-xl font-inter font-semibold text-gray-900 mt-6 mb-3">
+                              <h4
+                                key={index}
+                                className="text-xl font-inter font-semibold text-gray-900 mt-6 mb-3"
+                              >
                                 {block.content}
                               </h4>
                             );
-                          } else if (block.type === 'heading3') {
+                          } else if (block.type === "heading3") {
                             return (
-                              <h5 key={index} className="text-lg font-inter font-semibold text-gray-900 mt-4 mb-2">
+                              <h5
+                                key={index}
+                                className="text-lg font-inter font-semibold text-gray-900 mt-4 mb-2"
+                              >
                                 {block.content}
                               </h5>
                             );
-                          } else if (block.type === 'paragraph') {
-                            const contentWithLinks = convertCitationsToLinks(block.content);
+                          } else if (block.type === "paragraph") {
+                            const contentWithLinks = convertCitationsToLinks(
+                              block.content
+                            );
                             return (
-                              <p 
-                                key={index} 
+                              <p
+                                key={index}
                                 className="text-gray-700 font-inter leading-relaxed mb-4"
-                                dangerouslySetInnerHTML={{ __html: contentWithLinks }}
+                                dangerouslySetInnerHTML={{
+                                  __html: contentWithLinks,
+                                }}
                               />
                             );
                           } else {
                             // Handle any other block types
-                            const contentWithLinks = convertCitationsToLinks(block.content);
+                            const contentWithLinks = convertCitationsToLinks(
+                              block.content
+                            );
                             return (
-                              <div 
-                                key={index} 
+                              <div
+                                key={index}
                                 className="text-gray-700 font-inter leading-relaxed mb-4"
-                                dangerouslySetInnerHTML={{ __html: contentWithLinks }}
+                                dangerouslySetInnerHTML={{
+                                  __html: contentWithLinks,
+                                }}
                               />
                             );
                           }
@@ -524,7 +587,7 @@ export default function Draft() {
                       </div>
                     );
                   } catch (error) {
-                    console.error('Error parsing document content:', error);
+                    console.error("Error parsing document content:", error);
                     return (
                       <div className="p-4 bg-red-50 border border-red-200 rounded text-red-600 font-inter">
                         Error parsing document content. Please check the format.

@@ -16,7 +16,7 @@ export default function Entities() {
 
   return (
     <div className="p-14">
-      <h1 className="text-4xl font-playfair font-semibold text-black mb-2 tracking-tighter">
+      <h1 className="text-4xl font-playfair font-semibold text-[#554348] mb-2 tracking-tighter">
         Entities
       </h1>
       <p className="font-inter font-light">Create and approve entities here.</p>

@@ -62,12 +62,15 @@ export default function Notability() {
       setResearchLoading((prev) => ({ ...prev, [entityId]: true }));
       setResearchMessages((prev) => ({ ...prev, [entityId]: null }));
 
-      const response = await fetch(`http://localhost:8000/notability/${entityId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `http://localhost:8000/notability/${entityId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -77,7 +80,7 @@ export default function Notability() {
         ...prev,
         [entityId]: { type: "success", text: "Job submitted" },
       }));
-      
+
       // Refresh all entities to move this entity from Queue to Researching
       await fetchAllEntities();
     } catch (err) {
@@ -93,7 +96,7 @@ export default function Notability() {
 
   return (
     <div className="p-14">
-      <h1 className="text-4xl font-playfair font-semibold text-black mb-2 tracking-tighter">
+      <h1 className="text-4xl font-playfair font-semibold text-[#554348] mb-2 tracking-tighter">
         Notability
       </h1>
       <p className="font-inter font-light">

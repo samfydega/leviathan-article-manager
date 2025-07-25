@@ -92,9 +92,14 @@ function Home() {
 
   return (
     <div className="p-14">
-      <h1 className="text-4xl font-playfair font-semibold text-black mb-4 tracking-tighter">
+      <h1 className="text-4xl font-playfair font-semibold text-[#554348] mb-4 tracking-tighter">
         Home
       </h1>
+      {/* <img
+        src="./serpent5.png"
+        alt="Leviathan Encyclopedia"
+        className="w-48 h-48"
+      /> */}
 
       {/* Two LineGraphs side by side */}
       {/* <section className="mb-10">
