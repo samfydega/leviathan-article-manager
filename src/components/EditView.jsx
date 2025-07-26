@@ -7,6 +7,14 @@ export default function EditView({
   onClose,
   onSwitchToView,
 }) {
+  // Define the correct order for sections
+  const getSectionOrder = () => [
+    "lead",
+    "early_life",
+    "career",
+    "notable_investments",
+    "personal_life",
+  ];
   const [document, setDocument] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -113,55 +121,74 @@ export default function EditView({
         </div>
 
         {/* Document Sections */}
-        {Object.entries(document.sections).map(([sectionName, section]) => {
-          // Skip person_infobox for now (can add later if needed)
-          if (sectionName === "person_infobox") return null;
+        {(() => {
+          const sectionOrder = getSectionOrder();
+          const orderedSections = sectionOrder
+            .filter((sectionName) => document.sections[sectionName])
+            .map((sectionName) => [
+              sectionName,
+              document.sections[sectionName],
+            ]);
 
-          return (
-            <div key={sectionName} className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 capitalize">
-                {sectionName.replace(/_/g, " ")}
-              </h3>
-              <div className="space-y-4">
-                {section.blocks &&
-                  section.blocks.map((block, blockIndex) => (
-                    <div
-                      key={blockIndex}
-                      className="border border-gray-200 rounded-lg p-4"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-gray-700 capitalize">
-                          {block.type}
-                        </span>
-                      </div>
-                      <textarea
-                        value={
-                          typeof block.content === "object"
-                            ? block.content.text || block.content.title || ""
-                            : block.content || ""
-                        }
-                        onChange={(e) =>
-                          handleContentEdit(
-                            sectionName,
-                            blockIndex,
-                            e.target.value
-                          )
-                        }
-                        className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-                        placeholder={`Enter ${block.type} content...`}
-                      />
-                      {block.citations && block.citations.length > 0 && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          Citations:{" "}
-                          {block.citations.map((c) => c.id).join(", ")}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </div>
+          // Add any remaining sections that aren't in the predefined order
+          const remainingSections = Object.entries(document.sections).filter(
+            ([sectionName]) =>
+              sectionName !== "person_infobox" &&
+              !sectionOrder.includes(sectionName)
           );
-        })}
+
+          const allSections = [...orderedSections, ...remainingSections];
+
+          return allSections.map(([sectionName, section]) => {
+            // Skip person_infobox for now (can add later if needed)
+            if (sectionName === "person_infobox") return null;
+
+            return (
+              <div key={sectionName} className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 capitalize">
+                  {sectionName.replace(/_/g, " ")}
+                </h3>
+                <div className="space-y-4">
+                  {section.blocks &&
+                    section.blocks.map((block, blockIndex) => (
+                      <div
+                        key={blockIndex}
+                        className="border border-gray-200 rounded-lg p-4"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-gray-700 capitalize">
+                            {block.type}
+                          </span>
+                        </div>
+                        <textarea
+                          value={
+                            typeof block.content === "object"
+                              ? block.content.text || block.content.title || ""
+                              : block.content || ""
+                          }
+                          onChange={(e) =>
+                            handleContentEdit(
+                              sectionName,
+                              blockIndex,
+                              e.target.value
+                            )
+                          }
+                          className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                          placeholder={`Enter ${block.type} content...`}
+                        />
+                        {block.citations && block.citations.length > 0 && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            Citations:{" "}
+                            {block.citations.map((c) => c.id).join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            );
+          });
+        })()}
       </div>
     </div>
   );

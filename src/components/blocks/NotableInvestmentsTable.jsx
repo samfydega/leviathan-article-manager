@@ -14,9 +14,6 @@ import ReferenceLink from "./ReferenceLink";
 export default function NotableInvestmentsTable({ title, rows }) {
   return (
     <div className="mb-6">
-      <h3 className="text-xl font-semibold text-[#554348] mb-4 font-playfair">
-        {title}
-      </h3>
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse border border-gray-300">
           <thead>

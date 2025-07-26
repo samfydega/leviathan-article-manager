@@ -80,6 +80,11 @@ const sampleDocument = {
     notable_investments: {
       blocks: [
         {
+          type: "heading",
+          content: "Notable investments",
+          citations: [],
+        },
+        {
           type: "infobox",
           content: {
             title: "Notable Investments",

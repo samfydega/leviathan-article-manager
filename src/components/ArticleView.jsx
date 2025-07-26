@@ -29,6 +29,21 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
     }
   }, [documentData]);
 
+  // Define the correct order for sections
+  const getSectionOrder = () => [
+    "lead",
+    "early_life",
+    "career",
+    "notable_investments",
+    "personal_life",
+  ];
+
+  // Convert text to sentence case (first letter capitalized, rest lowercase)
+  const toSentenceCase = (text) => {
+    if (!text) return text;
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  };
+
   // Process all references from all sections and create global reference list
   const processGlobalReferences = (doc) => {
     const allReferences = [];
@@ -69,10 +84,39 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
     return globalRef ? globalRef.globalId : localId;
   };
 
-  // Render paragraph with inline citations
+  // Render paragraph with inline citations and lead section highlighting
   const renderParagraphWithCitations = (content, citations, sectionName) => {
+    let processedContent = content;
+
+    // Apply lead section highlighting if this is the lead section
+    if (sectionName === "lead") {
+      const titleWords = document.id
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1));
+      const titleWordCount = titleWords.length;
+
+      // Split content into words
+      const words = content.split(/(\s+)/);
+      const titleWordsToHighlight = titleWordCount;
+
+      // Apply semibold formatting to the first N words
+      const highlightedWords = words.map((word, index) => {
+        const wordIndex = Math.floor(index / 2); // Account for spaces
+        if (wordIndex < titleWordsToHighlight && word.trim()) {
+          return (
+            <span key={index} className="font-semibold">
+              {word}
+            </span>
+          );
+        }
+        return word;
+      });
+
+      processedContent = <>{highlightedWords}</>;
+    }
+
     if (!citations || citations.length === 0) {
-      return content;
+      return processedContent;
     }
 
     // Simply add citations to the end of the content
@@ -89,7 +133,7 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
 
     return (
       <>
-        {content} {citationLinks}
+        {processedContent} {citationLinks}
       </>
     );
   };
@@ -106,7 +150,9 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
           <div className="mb-4">
             <div className="flex items-center gap-2 group">
               <SectionHeader>
-                {isContentObject ? blockContent.title : blockContent}
+                {toSentenceCase(
+                  isContentObject ? blockContent.title : blockContent
+                )}
               </SectionHeader>
             </div>
             <Divider />
@@ -118,7 +164,9 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
           <div className="mb-3">
             <div className="flex items-center gap-2 group">
               <SubsectionHeader>
-                {isContentObject ? blockContent.title : blockContent}
+                {toSentenceCase(
+                  isContentObject ? blockContent.title : blockContent
+                )}
               </SubsectionHeader>
             </div>
           </div>
@@ -140,8 +188,13 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
       case "infobox":
         return (
           <div className="mb-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 group">
+                <SectionHeader>Notable investments</SectionHeader>
+              </div>
+              <Divider />
+            </div>
             <NotableInvestmentsTable
-              title={blockContent.title}
               columns={blockContent.columns}
               rows={blockContent.rows}
             />
@@ -166,6 +219,10 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
   // Render person infobox
   const renderPersonInfobox = (personData) => {
     if (!personData) return null;
+
+    // Debug: Log person data to check for image_url
+    console.log("Person infobox data:", personData);
+    console.log("image_url field:", personData.image_url);
 
     // Format birth information
     const formatBirthInfo = (born) => {
@@ -203,7 +260,7 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
 
     return (
       <InfoBox
-        image={personData.image || null}
+        image={personData.image_url || personData.image || null}
         imageAlt={personData.name}
         imageCaption={personData.name}
       >
@@ -266,10 +323,10 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
       </div>
 
       {/* Article Content */}
-      <main className="max-w-none mx-auto py-8 px-2 bg-white">
+      <main className="max-w-none mx-none py-8 bg-white">
         {/* Document Title */}
         <div className="mb-4">
-          <h1 className="text-4xl leading-10 tracking-tighter text-[#554348] font-semibold font-playfair">
+          <h1 className="text-4xl leading-10 tracking-tighter text-[#554348] font-semibold font-playfair mb-2">
             {document.id
               .split("-")
               .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -283,23 +340,42 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
           renderPersonInfobox(document.sections.person_infobox)}
 
         {/* Document Sections */}
-        {Object.entries(document.sections).map(([sectionName, section]) => {
-          // Skip person_infobox as it's handled separately
-          if (sectionName === "person_infobox") return null;
+        {(() => {
+          const sectionOrder = getSectionOrder();
+          const orderedSections = sectionOrder
+            .filter((sectionName) => document.sections[sectionName])
+            .map((sectionName) => [
+              sectionName,
+              document.sections[sectionName],
+            ]);
 
-          return (
-            <div key={sectionName} className="mb-8">
-              <div className="space-y-4">
-                {section.blocks &&
-                  section.blocks.map((block, blockIndex) => (
-                    <div key={blockIndex}>
-                      {renderBlock(block, sectionName, blockIndex)}
-                    </div>
-                  ))}
-              </div>
-            </div>
+          // Add any remaining sections that aren't in the predefined order
+          const remainingSections = Object.entries(document.sections).filter(
+            ([sectionName]) =>
+              sectionName !== "person_infobox" &&
+              !sectionOrder.includes(sectionName)
           );
-        })}
+
+          const allSections = [...orderedSections, ...remainingSections];
+
+          return allSections.map(([sectionName, section]) => {
+            // Skip person_infobox as it's handled separately
+            if (sectionName === "person_infobox") return null;
+
+            return (
+              <div key={sectionName} className="mb-8">
+                <div className="space-y-4">
+                  {section.blocks &&
+                    section.blocks.map((block, blockIndex) => (
+                      <div key={blockIndex}>
+                        {renderBlock(block, sectionName, blockIndex)}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            );
+          });
+        })()}
 
         {/* Global References */}
         {globalReferences.length > 0 && (
