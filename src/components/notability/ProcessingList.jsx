@@ -1,7 +1,11 @@
 import { useEffect, useRef } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, Archive } from "lucide-react";
 
-export default function ProcessingList({ entities, onStatusUpdate }) {
+export default function ProcessingList({
+  entities,
+  onStatusUpdate,
+  onArchive,
+}) {
   const pollIntervals = useRef(new Map());
 
   // Function to extract context around entity name
@@ -46,13 +50,16 @@ export default function ProcessingList({ entities, onStatusUpdate }) {
   // Function to poll research status
   const pollResearchStatus = async (entityId) => {
     try {
-      const response = await fetch("http://localhost:8000/notability/research/status", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id: entityId }),
-      });
+      const response = await fetch(
+        "http://localhost:8000/notability/research/status",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: entityId }),
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -64,7 +71,7 @@ export default function ProcessingList({ entities, onStatusUpdate }) {
             clearInterval(intervalId);
             pollIntervals.current.delete(entityId);
           }
-          
+
           // Trigger parent refresh
           if (onStatusUpdate) {
             onStatusUpdate();
@@ -91,8 +98,8 @@ export default function ProcessingList({ entities, onStatusUpdate }) {
 
     // Cleanup function to clear intervals for entities no longer in the list
     return () => {
-      const currentEntityIds = new Set(entities.map(e => e.id));
-      
+      const currentEntityIds = new Set(entities.map((e) => e.id));
+
       for (const [entityId, intervalId] of pollIntervals.current.entries()) {
         if (!currentEntityIds.has(entityId)) {
           clearInterval(intervalId);
@@ -140,11 +147,23 @@ export default function ProcessingList({ entities, onStatusUpdate }) {
                   </a>
                 </div>
               </div>
-              
-              {/* Research status indicator */}
-              <div className="flex items-center gap-2 text-sm text-blue-600 font-inter">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Researching...
+
+              <div className="flex items-center gap-3">
+                {/* Research status indicator */}
+                <div className="flex items-center gap-2 text-sm text-blue-600 font-inter">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Researching...
+                </div>
+
+                {/* Archive button */}
+                <button
+                  onClick={() => onArchive(entity.id)}
+                  className="flex items-center gap-1 px-2 py-1 text-sm font-inter text-gray-600 hover:text-red-600 transition-colors duration-150 border border-gray-300 hover:border-red-300 rounded"
+                  title="Archive this entity"
+                >
+                  <Archive className="w-3 h-3" />
+                  Archive
+                </button>
               </div>
             </div>
 

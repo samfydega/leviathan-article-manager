@@ -8,6 +8,7 @@ export default function ProcessingSection({
   showList,
   onToggleList,
   onStatusUpdate,
+  onArchive,
 }) {
   return (
     <div className="mt-8">
@@ -52,7 +53,11 @@ export default function ProcessingSection({
                   No researching in progress
                 </div>
               ) : (
-                <ProcessingList entities={entities} onStatusUpdate={onStatusUpdate} />
+                <ProcessingList
+                  entities={entities}
+                  onStatusUpdate={onStatusUpdate}
+                  onArchive={onArchive}
+                />
               )}
             </>
           )}

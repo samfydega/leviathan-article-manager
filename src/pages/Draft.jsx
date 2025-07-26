@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Loader2, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import DocumentEditor from "../components/DocumentEditor";
 
 export default function Draft() {
   // Drafting entities state
@@ -123,7 +124,20 @@ export default function Draft() {
       }
 
       const data = await response.json();
-      setDocumentContent(data);
+
+      // Parse the document data if it's in the old format
+      if (data.text) {
+        try {
+          const parsedContent = JSON.parse(data.text);
+          setDocumentContent(parsedContent);
+        } catch (parseError) {
+          console.error("Error parsing document content:", parseError);
+          setDocumentError("Error parsing document content");
+        }
+      } else {
+        // Assume it's already in the new format
+        setDocumentContent(data);
+      }
     } catch (error) {
       console.error(
         `Error fetching document content for entity ${entityId}:`,
@@ -168,6 +182,33 @@ export default function Draft() {
       console.error(`Error re-drafting for entity ${entityId}:`, error);
     } finally {
       setRedraftLoading(false);
+    }
+  };
+
+  // Handle saving document changes
+  const handleSaveDocument = async (updatedDocument) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/drafts/articles/${selectedDoc.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedDocument),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+
+      console.log("Document saved successfully");
+      // Update the local document content
+      setDocumentContent(updatedDocument);
+    } catch (error) {
+      console.error("Error saving document:", error);
+      throw error; // Re-throw to let the DocumentEditor handle the error
     }
   };
 
@@ -439,24 +480,6 @@ export default function Draft() {
         </>
       ) : (
         <>
-          {/* Back and Re-draft buttons */}
-          <div className="mt-8 mb-4 flex items-center gap-2">
-            <button
-              onClick={() => setSelectedDoc(null)}
-              className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150"
-            >
-              Back to Drafts
-            </button>
-            <button
-              onClick={() => handleRedraft(selectedDoc.id)}
-              disabled={redraftLoading}
-              className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {redraftLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Re-draft
-            </button>
-          </div>
-
           {/* Selected document content */}
           <div className="mt-4">
             {loadingDocument && (
@@ -473,132 +496,13 @@ export default function Draft() {
             )}
 
             {!loadingDocument && !documentError && documentContent && (
-              <div className="space-y-6">
-                {/* Parse and display the content blocks */}
-                {(() => {
-                  try {
-                    // Parse the stringified JSON from the text field
-                    const textContent = documentContent.text;
-                    const parsedContent = JSON.parse(textContent);
-                    const blocks = parsedContent.blocks;
-
-                    // Extract references from the References section
-                    const referencesBlock = blocks.find(
-                      (block) =>
-                        block.type === "heading2" &&
-                        block.content === "References"
-                    );
-                    const referencesIndex = blocks.indexOf(referencesBlock);
-                    const references = {};
-
-                    if (
-                      referencesIndex !== -1 &&
-                      referencesIndex + 1 < blocks.length
-                    ) {
-                      const referencesContent = blocks[referencesIndex + 1];
-                      if (
-                        referencesContent &&
-                        referencesContent.type === "paragraph"
-                      ) {
-                        const lines = referencesContent.content.split("\n");
-                        lines.forEach((line) => {
-                          const match = line.match(/^(\d+)\.\s+(.+)$/);
-                          if (match) {
-                            references[match[1]] = match[2];
-                          }
-                        });
-                      }
-                    }
-
-                    // Function to convert citations to links
-                    const convertCitationsToLinks = (text) => {
-                      return text.replace(/\[(\d+)\]/g, (match, num) => {
-                        const url = references[num];
-                        if (url) {
-                          return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">[${num}]</a>`;
-                        }
-                        return match;
-                      });
-                    };
-
-                    return blocks && blocks.length > 0 ? (
-                      <div className="space-y-4">
-                        {blocks.map((block, index) => {
-                          if (block.type === "heading") {
-                            return (
-                              <h3
-                                key={index}
-                                className="text-2xl font-inter font-semibold text-gray-900 mt-8 mb-4"
-                              >
-                                {block.content}
-                              </h3>
-                            );
-                          } else if (block.type === "heading2") {
-                            return (
-                              <h4
-                                key={index}
-                                className="text-xl font-inter font-semibold text-gray-900 mt-6 mb-3"
-                              >
-                                {block.content}
-                              </h4>
-                            );
-                          } else if (block.type === "heading3") {
-                            return (
-                              <h5
-                                key={index}
-                                className="text-lg font-inter font-semibold text-gray-900 mt-4 mb-2"
-                              >
-                                {block.content}
-                              </h5>
-                            );
-                          } else if (block.type === "paragraph") {
-                            const contentWithLinks = convertCitationsToLinks(
-                              block.content
-                            );
-                            return (
-                              <p
-                                key={index}
-                                className="text-gray-700 font-inter leading-relaxed mb-4"
-                                dangerouslySetInnerHTML={{
-                                  __html: contentWithLinks,
-                                }}
-                              />
-                            );
-                          } else {
-                            // Handle any other block types
-                            const contentWithLinks = convertCitationsToLinks(
-                              block.content
-                            );
-                            return (
-                              <div
-                                key={index}
-                                className="text-gray-700 font-inter leading-relaxed mb-4"
-                                dangerouslySetInnerHTML={{
-                                  __html: contentWithLinks,
-                                }}
-                              />
-                            );
-                          }
-                        })}
-                      </div>
-                    ) : (
-                      <div className="p-4 text-gray-500 font-inter">
-                        No content available for this document.
-                      </div>
-                    );
-                  } catch (error) {
-                    console.error("Error parsing document content:", error);
-                    return (
-                      <div className="p-4 bg-red-50 border border-red-200 rounded text-red-600 font-inter">
-                        Error parsing document content. Please check the format.
-                        <pre className="mt-2 text-xs overflow-auto">
-                          {JSON.stringify(documentContent, null, 2)}
-                        </pre>
-                      </div>
-                    );
-                  }
-                })()}
-              </div>
+              <DocumentEditor
+                documentData={documentContent}
+                onSave={handleSaveDocument}
+                onClose={() => setSelectedDoc(null)}
+                onRedraft={() => handleRedraft(selectedDoc.id)}
+                redraftLoading={redraftLoading}
+              />
             )}
           </div>
         </>

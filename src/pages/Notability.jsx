@@ -94,6 +94,31 @@ export default function Notability() {
     }
   };
 
+  const handleArchive = async (entityId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/entities/${entityId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: "backlog" }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+
+      // Refresh all entities to remove this entity from Researching
+      await fetchAllEntities();
+    } catch (err) {
+      console.error("Error archiving entity:", err);
+      // You could add a toast notification here if you want to show the error to the user
+    }
+  };
+
   return (
     <div className="p-14">
       <h1 className="text-4xl font-playfair font-semibold text-[#554348] mb-2 tracking-tighter">
@@ -121,6 +146,7 @@ export default function Notability() {
         showList={showResearching}
         onToggleList={() => setShowResearching(!showResearching)}
         onStatusUpdate={fetchAllEntities}
+        onArchive={handleArchive}
       />
 
       <FinishedSection
