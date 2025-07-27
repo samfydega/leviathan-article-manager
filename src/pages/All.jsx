@@ -8,6 +8,10 @@ export default function All() {
   const [deletingEntities, setDeletingEntities] = useState(new Set());
   const [scrollPosition, setScrollPosition] = useState(0);
   const [copiedId, setCopiedId] = useState(null);
+  const [filters, setFilters] = useState({
+    state: "",
+    entityType: "",
+  });
 
   // Fetch all entities on component mount
   useEffect(() => {
@@ -52,19 +56,194 @@ export default function All() {
     }
   };
 
-  // Function to get status color
+  // Function to get status color based on state and phase
   const getStatusColor = (status) => {
-    const statusColors = {
+    if (!status || typeof status !== "object") {
+      return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+
+    const { state, phase } = status;
+
+    // Define colors based on state
+    const stateColors = {
       queue: "bg-yellow-100 text-yellow-800 border-yellow-200",
       researching: "bg-blue-100 text-blue-800 border-blue-200",
       researched: "bg-green-100 text-green-800 border-green-200",
       backlog: "bg-gray-100 text-gray-800 border-gray-200",
+      backlogged: "bg-gray-100 text-gray-800 border-gray-200",
       ignore: "bg-red-100 text-red-800 border-red-200",
+      ignored: "bg-red-100 text-red-800 border-red-200",
+      notability: "bg-pink-100 text-pink-800 border-pink-200",
       drafting_sections: "bg-purple-100 text-purple-800 border-purple-200",
       drafted_sections: "bg-indigo-100 text-indigo-800 border-indigo-200",
       drafting_article: "bg-orange-100 text-orange-800 border-orange-200",
+      finished: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      published: "bg-teal-100 text-teal-800 border-teal-200",
+      review: "bg-amber-100 text-amber-800 border-amber-200",
+      editing: "bg-cyan-100 text-cyan-800 border-cyan-200",
     };
-    return statusColors[status] || "bg-gray-100 text-gray-800 border-gray-200";
+
+    return stateColors[state] || "bg-gray-100 text-gray-800 border-gray-200";
+  };
+
+  // Function to get entity type color
+  const getEntityTypeColor = (entityType) => {
+    if (!entityType) {
+      return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+
+    // Define colors based on NER entity types
+    const entityTypeColors = {
+      // Person entities
+      PERSON: "bg-blue-100 text-blue-800 border-blue-200",
+      person: "bg-blue-100 text-blue-800 border-blue-200",
+
+      // Organization entities
+      ORG: "bg-purple-100 text-purple-800 border-purple-200",
+      organization: "bg-purple-100 text-purple-800 border-purple-200",
+      company: "bg-purple-100 text-purple-800 border-purple-200",
+
+      // Location entities
+      LOC: "bg-green-100 text-green-800 border-green-200",
+      location: "bg-green-100 text-green-800 border-green-200",
+      place: "bg-green-100 text-green-800 border-green-200",
+
+      // Date/Time entities
+      DATE: "bg-orange-100 text-orange-800 border-orange-200",
+      date: "bg-orange-100 text-orange-800 border-orange-200",
+      time: "bg-orange-100 text-orange-800 border-orange-200",
+
+      // Money/Financial entities
+      MONEY: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      money: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      currency: "bg-emerald-100 text-emerald-800 border-emerald-200",
+
+      // Percentage entities
+      PERCENT: "bg-teal-100 text-teal-800 border-teal-200",
+      percent: "bg-teal-100 text-teal-800 border-teal-200",
+      percentage: "bg-teal-100 text-teal-800 border-teal-200",
+
+      // Product entities
+      PRODUCT: "bg-indigo-100 text-indigo-800 border-indigo-200",
+      product: "bg-indigo-100 text-indigo-800 border-indigo-200",
+
+      // Event entities
+      EVENT: "bg-pink-100 text-pink-800 border-pink-200",
+      event: "bg-pink-100 text-pink-800 border-pink-200",
+
+      // Work of Art entities
+      WORK_OF_ART: "bg-rose-100 text-rose-800 border-rose-200",
+      work_of_art: "bg-rose-100 text-rose-800 border-rose-200",
+      artwork: "bg-rose-100 text-rose-800 border-rose-200",
+
+      // Law entities
+      LAW: "bg-slate-100 text-slate-800 border-slate-200",
+      law: "bg-slate-100 text-slate-800 border-slate-200",
+      legal: "bg-slate-100 text-slate-800 border-slate-200",
+
+      // Language entities
+      LANGUAGE: "bg-amber-100 text-amber-800 border-amber-200",
+      language: "bg-amber-100 text-amber-800 border-amber-200",
+
+      // Quantity entities
+      QUANTITY: "bg-cyan-100 text-cyan-800 border-cyan-200",
+      quantity: "bg-cyan-100 text-cyan-800 border-cyan-200",
+
+      // Cardinal entities
+      CARDINAL: "bg-violet-100 text-violet-800 border-violet-200",
+      cardinal: "bg-violet-100 text-violet-800 border-violet-200",
+      number: "bg-violet-100 text-violet-800 border-violet-200",
+
+      // Ordinal entities
+      ORDINAL: "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
+      ordinal: "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
+
+      // Facility entities
+      FAC: "bg-lime-100 text-lime-800 border-lime-200",
+      facility: "bg-lime-100 text-lime-800 border-lime-200",
+
+      // GPE (Geo-Political Entity) entities
+      GPE: "bg-sky-100 text-sky-800 border-sky-200",
+      gpe: "bg-sky-100 text-sky-800 border-sky-200",
+
+      // NORP (Nationality, Religious, Political Group) entities
+      NORP: "bg-stone-100 text-stone-800 border-stone-200",
+      norp: "bg-stone-100 text-stone-800 border-stone-200",
+
+      // Default for unknown types
+      unknown: "bg-gray-100 text-gray-800 border-gray-200",
+    };
+
+    return (
+      entityTypeColors[entityType] ||
+      "bg-gray-100 text-gray-800 border-gray-200"
+    );
+  };
+
+  // Function to format status display
+  const formatStatus = (status) => {
+    if (!status || typeof status !== "object") {
+      return "Unknown";
+    }
+
+    const { state, phase } = status;
+
+    if (phase) {
+      return `${state} (${phase})`;
+    }
+
+    return state || "Unknown";
+  };
+
+  // Function to get unique states from entities
+  const getUniqueStates = () => {
+    const states = new Set();
+    entities.forEach((entity) => {
+      if (entity.status && entity.status.state) {
+        states.add(entity.status.state);
+      }
+    });
+    return Array.from(states).sort();
+  };
+
+  // Function to get unique entity types from entities
+  const getUniqueEntityTypes = () => {
+    const types = new Set();
+    entities.forEach((entity) => {
+      if (entity.entity_type) {
+        types.add(entity.entity_type);
+      }
+    });
+    return Array.from(types).sort();
+  };
+
+  // Function to filter entities based on current filters
+  const getFilteredEntities = () => {
+    return entities.filter((entity) => {
+      const stateMatch =
+        !filters.state ||
+        (entity.status && entity.status.state === filters.state);
+      const typeMatch =
+        !filters.entityType || entity.entity_type === filters.entityType;
+
+      return stateMatch && typeMatch;
+    });
+  };
+
+  // Function to handle filter changes
+  const handleFilterChange = (filterType, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [filterType]: value,
+    }));
+  };
+
+  // Function to clear all filters
+  const clearFilters = () => {
+    setFilters({
+      state: "",
+      entityType: "",
+    });
   };
 
   // Function to delete an entity
@@ -144,12 +323,74 @@ export default function All() {
         View all content and entities in one place.
       </p>
 
+      {/* Filter Bar */}
+      <div className="mt-8 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="state-filter"
+              className="text-sm font-inter font-medium text-gray-700"
+            >
+              State:
+            </label>
+            <select
+              id="state-filter"
+              value={filters.state}
+              onChange={(e) => handleFilterChange("state", e.target.value)}
+              className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All States</option>
+              {getUniqueStates().map((state) => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="type-filter"
+              className="text-sm font-inter font-medium text-gray-700"
+            >
+              Type:
+            </label>
+            <select
+              id="type-filter"
+              value={filters.entityType}
+              onChange={(e) => handleFilterChange("entityType", e.target.value)}
+              className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Types</option>
+              {getUniqueEntityTypes().map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {(filters.state || filters.entityType) && (
+            <button
+              onClick={clearFilters}
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-md transition-colors duration-150"
+            >
+              Clear Filters
+            </button>
+          )}
+
+          <div className="ml-auto text-sm text-gray-500 font-inter">
+            {getFilteredEntities().length} of {entities.length} entities
+          </div>
+        </div>
+      </div>
+
       <div className="mt-8">
         <div className="grid grid-cols-4 gap-6">
-          {entities.map((entity) => (
+          {getFilteredEntities().map((entity) => (
             <div
               key={entity.id}
-              className="border border-gray-200 bg-white rounded-lg p-4 transition-all duration-200 hover:shadow-md relative"
+              className="border border-gray-200 bg-white rounded-lg p-4 pb-12 transition-all duration-200 hover:shadow-md relative"
             >
               {/* Name - Clickable to copy ID */}
               <div className="mb-3">
@@ -169,27 +410,37 @@ export default function All() {
                 </button>
               </div>
 
-              {/* Context - Limited to 2 lines */}
-              <div className="mb-3">
-                <p className="text-sm font-inter text-gray-700 leading-relaxed line-clamp-2">
-                  {entity.context}
-                </p>
+              {/* Type and Status - Side by side */}
+              <div className="mb-3 flex gap-2">
+                <span
+                  className={`inline-block px-2 py-1 rounded text-xs font-inter border ${getEntityTypeColor(
+                    entity.entity_type
+                  )}`}
+                >
+                  {entity.entity_type || "Unknown"}
+                </span>
+                <span
+                  className={`inline-block px-2 py-1 rounded text-xs font-inter border ${getStatusColor(
+                    entity.status
+                  )}`}
+                >
+                  {formatStatus(entity.status)}
+                </span>
               </div>
 
-              {/* Status */}
+              {/* Context - Limited to 2 lines */}
               <div className="mb-3">
-                <span className="text-xs font-inter font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </span>
-                <div className="mt-1">
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-xs font-inter border ${getStatusColor(
-                      entity.status
-                    )}`}
-                  >
-                    {entity.status}
-                  </span>
-                </div>
+                <p
+                  className="text-sm font-inter text-gray-700 leading-relaxed overflow-hidden"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {entity.context}
+                </p>
               </div>
 
               {/* Delete Button */}
@@ -207,9 +458,13 @@ export default function All() {
           ))}
         </div>
 
-        {entities.length === 0 && (
+        {getFilteredEntities().length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500 font-inter">No entities found.</p>
+            <p className="text-gray-500 font-inter">
+              {entities.length === 0
+                ? "No entities found."
+                : "No entities match the current filters."}
+            </p>
           </div>
         )}
       </div>

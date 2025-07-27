@@ -1,18 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   ExternalLink,
   CheckCircle,
   XCircle,
   AlertTriangle,
   Loader2,
+  FileText,
+  Archive,
 } from "lucide-react";
 
 export default function FinishedList({ entities, onStatusUpdate }) {
-  const [entitySources, setEntitySources] = useState({});
-  const [loadingSources, setLoadingSources] = useState({});
-  const [sourceErrors, setSourceErrors] = useState({});
+  const [entityData, setEntityData] = useState({}); // Stores both notability and sources
+  const [loadingData, setLoadingData] = useState({});
+  const [dataErrors, setDataErrors] = useState({});
   const [expandedPanel, setExpandedPanel] = useState({});
-  const notabilityPollIntervals = useRef(new Map());
   // Selected document type per entity for drafting (person or company)
   const [docTypes, setDocTypes] = useState({});
   // Error messages for draft action per entity
@@ -61,12 +62,12 @@ export default function FinishedList({ entities, onStatusUpdate }) {
     return `https://en.wikipedia.org/wiki/${encodeURIComponent(formattedName)}`;
   };
 
-  // Function to fetch sources for an entity
-  const fetchEntitySources = async (entityId) => {
-    if (loadingSources[entityId] || entitySources[entityId]) return;
+  // Function to fetch notability data and sources for an entity
+  const fetchEntityData = async (entityId) => {
+    if (loadingData[entityId] || entityData[entityId]) return;
 
     try {
-      setLoadingSources((prev) => ({ ...prev, [entityId]: true }));
+      setLoadingData((prev) => ({ ...prev, [entityId]: true }));
 
       const response = await fetch(
         `http://localhost:8000/notability/${entityId}`
@@ -77,13 +78,19 @@ export default function FinishedList({ entities, onStatusUpdate }) {
       }
 
       const data = await response.json();
-      setEntitySources((prev) => ({ ...prev, [entityId]: data.sources || [] }));
-      setSourceErrors((prev) => ({ ...prev, [entityId]: null }));
+      setEntityData((prev) => ({
+        ...prev,
+        [entityId]: {
+          is_notable: data.is_notable,
+          sources: data.sources || [],
+        },
+      }));
+      setDataErrors((prev) => ({ ...prev, [entityId]: null }));
     } catch (error) {
-      console.error(`Error fetching sources for entity ${entityId}:`, error);
-      setSourceErrors((prev) => ({ ...prev, [entityId]: error.message }));
+      console.error(`Error fetching data for entity ${entityId}:`, error);
+      setDataErrors((prev) => ({ ...prev, [entityId]: error.message }));
     } finally {
-      setLoadingSources((prev) => ({ ...prev, [entityId]: false }));
+      setLoadingData((prev) => ({ ...prev, [entityId]: false }));
     }
   };
 
@@ -105,118 +112,6 @@ export default function FinishedList({ entities, onStatusUpdate }) {
       };
     }
   };
-
-  // Function to poll notability status for entities with null notability values
-  const pollNotabilityStatus = async (entityId) => {
-    try {
-      const response = await fetch(
-        "http://localhost:8000/notability/notability/status",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ id: entityId }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(
-          `Notability polling response for entity ${entityId}:`,
-          data
-        );
-
-        // If notability is completed, trigger a status update to refresh the parent data
-        if (data.status === "completed") {
-          console.log(
-            `Notability completed for entity ${entityId}. API returned:`,
-            {
-              notability_status: data.notability_status,
-              rationale: data.rationale,
-            }
-          );
-          console.log(
-            "Refreshing parent data to get updated entity with notability_status and notability_rationale fields..."
-          );
-
-          // Refresh the parent data to get updated entity information
-          if (onStatusUpdate) {
-            onStatusUpdate();
-          }
-        }
-      } else {
-        console.log(
-          `Notability polling failed for entity ${entityId}:`,
-          response.status,
-          response.statusText
-        );
-      }
-    } catch (error) {
-      console.error(
-        `Error polling notability status for entity ${entityId}:`,
-        error
-      );
-    }
-  };
-
-  // Check if entity needs notability polling (has null notability_status or notability_rationale)
-  const needsNotabilityPolling = (entity) => {
-    return (
-      entity.notability_status === null ||
-      entity.notability_status === undefined ||
-      entity.notability_rationale === null ||
-      entity.notability_rationale === undefined
-    );
-  };
-
-  // Start notability polling for entities that need it
-  useEffect(() => {
-    entities.forEach((entity) => {
-      if (needsNotabilityPolling(entity)) {
-        // Only start polling if not already polling this entity
-        if (!notabilityPollIntervals.current.has(entity.id)) {
-          const intervalId = setInterval(() => {
-            pollNotabilityStatus(entity.id);
-          }, 10000); // Poll every 10 seconds
-
-          notabilityPollIntervals.current.set(entity.id, intervalId);
-        }
-      } else {
-        // Stop polling if notability is determined
-        const intervalId = notabilityPollIntervals.current.get(entity.id);
-        if (intervalId) {
-          clearInterval(intervalId);
-          notabilityPollIntervals.current.delete(entity.id);
-        }
-      }
-    });
-
-    // Cleanup function to clear intervals for entities no longer in the list
-    return () => {
-      const currentEntityIds = new Set(entities.map((e) => e.id));
-
-      for (const [
-        entityId,
-        intervalId,
-      ] of notabilityPollIntervals.current.entries()) {
-        if (!currentEntityIds.has(entityId)) {
-          clearInterval(intervalId);
-          notabilityPollIntervals.current.delete(entityId);
-        }
-      }
-    };
-  }, [entities, onStatusUpdate]);
-
-  // Cleanup all notability polling intervals on unmount
-  useEffect(() => {
-    return () => {
-      for (const intervalId of notabilityPollIntervals.current.values()) {
-        clearInterval(intervalId);
-      }
-      notabilityPollIntervals.current.clear();
-    };
-  }, []);
 
   // Handle toggling document type selection (single select only)
   const handleDocTypeChange = (entityId, type) => {
@@ -240,7 +135,11 @@ export default function FinishedList({ entities, onStatusUpdate }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            status: "backlog",
+            id: entityId,
+            status: {
+              phase: null,
+              state: "archived",
+            },
           }),
         }
       );
@@ -275,8 +174,32 @@ export default function FinishedList({ entities, onStatusUpdate }) {
     setDraftLoading((prev) => ({ ...prev, [entityId]: true }));
 
     try {
-      // Make the API call to draft the article
-      const response = await fetch(`http://localhost:8000/drafts/`, {
+      // First, update entity status for draft
+      const entityResponse = await fetch(
+        `http://localhost:8000/entities/${entityId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: entityId,
+            status: {
+              phase: "queued",
+              state: "draft_research",
+            },
+          }),
+        }
+      );
+
+      if (!entityResponse.ok) {
+        throw new Error(
+          `HTTP ${entityResponse.status}: ${await entityResponse.text()}`
+        );
+      }
+
+      // Then, call the drafts endpoint
+      const draftResponse = await fetch(`http://localhost:8000/drafts/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -287,8 +210,10 @@ export default function FinishedList({ entities, onStatusUpdate }) {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      if (!draftResponse.ok) {
+        throw new Error(
+          `HTTP ${draftResponse.status}: ${await draftResponse.text()}`
+        );
       }
 
       // On success, refresh the parent data to update the entity list
@@ -310,8 +235,8 @@ export default function FinishedList({ entities, onStatusUpdate }) {
   const handleTogglePanel = (entityId, panel) => {
     const current = expandedPanel[entityId];
     const isOpening = current !== panel;
-    if (panel === "sources" && isOpening) {
-      fetchEntitySources(entityId);
+    if (isOpening) {
+      fetchEntityData(entityId);
     }
     setExpandedPanel((prev) => ({
       ...prev,
@@ -327,9 +252,10 @@ export default function FinishedList({ entities, onStatusUpdate }) {
         const panel = expandedPanel[entity.id];
         const showSources = panel === "sources";
         const showNotability = panel === "notability";
-        const sources = entitySources[entity.id] || [];
-        const isLoading = loadingSources[entity.id];
-        const error = sourceErrors[entity.id];
+        const entityInfo = entityData[entity.id];
+        const sources = entityInfo?.sources || [];
+        const isLoading = loadingData[entity.id];
+        const error = dataErrors[entity.id];
 
         return (
           <div
@@ -384,140 +310,121 @@ export default function FinishedList({ entities, onStatusUpdate }) {
             {/* Notability Status */}
             {showNotability && (
               <div className="mb-4">
-                {needsNotabilityPolling(entity) ? (
-                  // Still determining notability
+                {isLoading ? (
+                  // Loading notability data
                   <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded text-sm font-inter">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
                     <span className="text-blue-700">
-                      Determining notability...
+                      Loading notability data...
                     </span>
                   </div>
-                ) : (
-                  // Notability determined
+                ) : error ? (
+                  // Error loading notability data
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded text-sm font-inter">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                    <span className="text-red-700">
+                      Error loading notability data: {error}
+                    </span>
+                  </div>
+                ) : entityInfo ? (
+                  // Notability data loaded
                   <div className="space-y-2">
                     <div
                       className={`flex items-center gap-2 p-3 rounded text-sm font-inter ${
-                        entity.notability_status === "exceeds"
+                        entityInfo.is_notable
                           ? "bg-green-50 border border-green-200"
-                          : entity.notability_status === "meets"
-                          ? "bg-yellow-50 border border-yellow-200"
                           : "bg-red-50 border border-red-200"
                       }`}
                     >
-                      {entity.notability_status === "exceeds" ? (
+                      {entityInfo.is_notable ? (
                         <>
                           <CheckCircle className="w-4 h-4 text-green-600" />
                           <span className="font-medium text-green-700">
-                            Exceeds Notability
-                          </span>
-                        </>
-                      ) : entity.notability_status === "meets" ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 text-yellow-600" />
-                          <span className="font-medium text-yellow-700">
-                            Meets Notability
+                            Meets Notability Standards
                           </span>
                         </>
                       ) : (
                         <>
                           <XCircle className="w-4 h-4 text-red-600" />
                           <span className="font-medium text-red-700">
-                            Fails Notability
+                            Does Not Meet Notability Standards
                           </span>
                         </>
                       )}
                     </div>
 
-                    {entity.notability_rationale && (
-                      <div className="p-3 bg-gray-50 border border-gray-200 rounded text-sm font-inter leading-relaxed">
-                        <span className="font-medium text-gray-700">
-                          Rationale:
-                        </span>
-                        <p className="mt-1 text-gray-600">
-                          {entity.notability_rationale}
-                        </p>
+                    {/* Action buttons */}
+                    <div className="mt-4 flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          onClick={() => handleDraft(entity.id)}
+                          disabled={draftLoading[entity.id]}
+                        >
+                          {draftLoading[entity.id] ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileText className="w-4 h-4" />
+                          )}
+                          Draft
+                        </button>
+                        <button
+                          className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          onClick={() => handleArchive(entity.id)}
+                          disabled={archiveLoading[entity.id]}
+                        >
+                          {archiveLoading[entity.id] ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Archive className="w-4 h-4" />
+                          )}
+                          Archive
+                        </button>
                       </div>
-                    )}
-                    {/* Action buttons and type selection for Meets/Exceeds Notability */}
-                    {(entity.notability_status === "meets" ||
-                      entity.notability_status === "exceeds") && (
-                      <div className="mt-4 flex flex-col gap-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            onClick={() => handleDraft(entity.id)}
-                            disabled={draftLoading[entity.id]}
-                          >
-                            {draftLoading[entity.id] && (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            )}
-                            Draft article
-                          </button>
-                          <button
-                            className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            onClick={() => handleArchive(entity.id)}
-                            disabled={archiveLoading[entity.id]}
-                          >
-                            {archiveLoading[entity.id] && (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            )}
-                            Archive
-                          </button>
-                        </div>
 
-                        {/* Type selection (single choice) */}
-                        <div className="flex items-center gap-6">
-                          {[
-                            "venture_capitalist",
-                            "startup_founder",
-                            "startup_company",
-                            "venture_firm",
-                          ].map((type) => (
-                            <label
-                              key={type}
-                              className="inline-flex items-center gap-1"
-                            >
-                              <input
-                                type="radio"
-                                name={`docType-${entity.id}`}
-                                value={type}
-                                checked={docTypes[entity.id] === type}
-                                onChange={() =>
-                                  handleDocTypeChange(entity.id, type)
-                                }
-                                className="form-radio"
-                              />
-                              <span className="text-sm font-inter text-gray-700">
-                                {type
-                                  .replace(/_/g, " ")
-                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                        {draftErrors[entity.id] && (
-                          <div className="text-red-600 text-sm">
-                            {draftErrors[entity.id]}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {/* Archive button for Fails Notability */}
-                    {entity.notability_status !== "meets" &&
-                      entity.notability_status !== "exceeds" && (
-                        <div className="mt-4 flex items-center gap-2">
-                          <button
-                            className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            onClick={() => handleArchive(entity.id)}
-                            disabled={archiveLoading[entity.id]}
+                      {/* Type selection (single choice) */}
+                      <div className="flex items-center gap-6">
+                        {[
+                          "venture_capitalist",
+                          // "startup_founder",
+                          // "startup_company",
+                          "venture_firm",
+                        ].map((type) => (
+                          <label
+                            key={type}
+                            className="inline-flex items-center gap-1"
                           >
-                            {archiveLoading[entity.id] && (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            )}
-                            Archive
-                          </button>
+                            <input
+                              type="radio"
+                              name={`docType-${entity.id}`}
+                              value={type}
+                              checked={docTypes[entity.id] === type}
+                              onChange={() =>
+                                handleDocTypeChange(entity.id, type)
+                              }
+                              className="form-radio"
+                            />
+                            <span className="text-sm font-inter text-gray-700">
+                              {type
+                                .replace(/_/g, " ")
+                                .replace(/\b\w/g, (l) => l.toUpperCase())}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      {draftErrors[entity.id] && (
+                        <div className="text-red-600 text-sm">
+                          {draftErrors[entity.id]}
                         </div>
                       )}
+                    </div>
+                  </div>
+                ) : (
+                  // No data loaded yet
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded text-sm font-inter">
+                    <span className="text-gray-700">
+                      Click "Notability" to load notability data
+                    </span>
                   </div>
                 )}
               </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import ReadyToProcessSection from "../components/notability/ReadyToProcessSection";
-import ProcessingSection from "../components/notability/ProcessingSection";
-import FinishedSection from "../components/notability/FinishedSection";
+import ReadyToProcessSection from "./ReadyToProcessSection";
+import ProcessingSection from "./ProcessingSection";
+import FinishedSection from "./FinishedSection";
 
 export default function Notability() {
   const [queueEntities, setQueueEntities] = useState([]);
@@ -11,9 +11,9 @@ export default function Notability() {
   const [error, setError] = useState(null);
   const [researchLoading, setResearchLoading] = useState({});
   const [researchMessages, setResearchMessages] = useState({});
-  const [showQueue, setShowQueue] = useState(true);
-  const [showResearching, setShowResearching] = useState(true);
-  const [showResearched, setShowResearched] = useState(true);
+  const [showQueue, setShowQueue] = useState(false);
+  const [showResearching, setShowResearching] = useState(false);
+  const [showResearched, setShowResearched] = useState(false);
 
   // Fetch all entities on component mount
   useEffect(() => {
@@ -24,26 +24,48 @@ export default function Notability() {
     try {
       setLoading(true);
 
-      const [queueResponse, researchingResponse, researchedResponse] =
-        await Promise.all([
-          fetch("http://localhost:8000/entities/status/queue"),
-          fetch("http://localhost:8000/entities/status/researching"),
-          fetch("http://localhost:8000/entities/status/researched"),
-        ]);
+      // Fetch queue entities (notability, queued)
+      const queueResponse = await fetch(
+        "http://localhost:8000/entities/status?state=notability&phase=queued"
+      );
+
+      // Fetch researching entities (notability, processing)
+      const researchingResponse = await fetch(
+        "http://localhost:8000/entities/status?state=notability&phase=processing"
+      );
+
+      // Fetch completed entities (notability, completed)
+      const completedResponse = await fetch(
+        "http://localhost:8000/entities/status?state=notability&phase=completed"
+      );
+
+      // Fetch failed entities (notability, failed)
+      const failedResponse = await fetch(
+        "http://localhost:8000/entities/status?state=notability&phase=failed"
+      );
 
       if (
         !queueResponse.ok ||
         !researchingResponse.ok ||
-        !researchedResponse.ok
+        !completedResponse.ok ||
+        !failedResponse.ok
       ) {
         throw new Error("Failed to fetch entities");
       }
 
-      const [queueData, researchingData, researchedData] = await Promise.all([
-        queueResponse.json(),
-        researchingResponse.json(),
-        researchedResponse.json(),
-      ]);
+      const [queueData, researchingData, completedData, failedData] =
+        await Promise.all([
+          queueResponse.json(),
+          researchingResponse.json(),
+          completedResponse.json(),
+          failedResponse.json(),
+        ]);
+
+      // Log the completed entities response to see what we get
+      console.log("Completed entities response:", completedData);
+
+      // Combine completed and failed entities for the researched section
+      const researchedData = [...completedData, ...failedData];
 
       setQueueEntities(queueData);
       setResearchingEntities(researchingData);

@@ -154,9 +154,9 @@ export default function QueuedEntitiesList() {
   if (error) {
     return (
       <div className="mt-8">
-        <h2 className="text-2xl font-inter font-medium text-black mb-4 tracking-tighter">
+        {/* <h2 className="text-2xl font-inter font-medium text-black mb-4 tracking-tighter">
           Queued
-        </h2>
+        </h2> */}
         <div className="text-center text-red-600 font-inter py-8">
           Error loading queued entities: {error}
         </div>
@@ -167,7 +167,7 @@ export default function QueuedEntitiesList() {
   return (
     <div className="mt-8">
       <h2 className="text-2xl font-inter font-medium text-black mb-4 tracking-tighter">
-        Queued
+        Queue
       </h2>
 
       {queuedEntities.length === 0 ? (

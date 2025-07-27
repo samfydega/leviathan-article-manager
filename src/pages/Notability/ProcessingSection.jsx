@@ -1,21 +1,20 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
-import ReadyToProcessList from './ReadyToProcessList';
+import ProcessingList from "./ProcessingList";
 
-export default function ReadyToProcessSection({ 
-  entities, 
-  loading, 
-  error, 
-  researchLoading, 
-  researchMessages, 
-  onResearch,
+export default function ProcessingSection({
+  entities,
+  loading,
+  error,
   showList,
-  onToggleList
+  onToggleList,
+  onStatusUpdate,
+  onArchive,
 }) {
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-inter font-medium text-black tracking-tighter">
-          Queue
+          Processing ({entities.length})
         </h2>
         <button
           onClick={onToggleList}
@@ -46,19 +45,18 @@ export default function ReadyToProcessSection({
             </div>
           )}
 
-          {/* Entities List */}
+          {/* Researching Entities List */}
           {!loading && !error && (
             <>
               {entities.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 font-inter">
-                  🎉 No entities in queue!
+                <div className="text-left text-gray-500 font-inter">
+                  No researching in progress
                 </div>
               ) : (
-                <ReadyToProcessList 
+                <ProcessingList
                   entities={entities}
-                  researchLoading={researchLoading}
-                  researchMessages={researchMessages}
-                  onResearch={onResearch}
+                  onStatusUpdate={onStatusUpdate}
+                  onArchive={onArchive}
                 />
               )}
             </>
