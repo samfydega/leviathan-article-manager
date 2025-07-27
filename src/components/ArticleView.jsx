@@ -164,9 +164,7 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
           <div className="mb-3">
             <div className="flex items-center gap-2 group">
               <SubsectionHeader>
-                {toSentenceCase(
-                  isContentObject ? blockContent.title : blockContent
-                )}
+                {isContentObject ? blockContent.title : blockContent}
               </SubsectionHeader>
             </div>
           </div>

@@ -42,14 +42,14 @@ function Navigation() {
                     <NavLink
                       to={item.path}
                       className={({ isActive }) =>
-                        `flex items-center px-3 py-2 rounded-md text-sm font-libre transition-colors duration-150 ${
+                        `flex items-center px-3 py-2.25 rounded-md text-sm font-libre transition-colors duration-150 ${
                           isActive
                             ? "bg-gray-200 text-gray-900"
                             : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                         }`
                       }
                     >
-                      <IconComponent className="w-4 h-4 mr-3" />
+                      <IconComponent className="w-4.5 h-4.5 mr-3.5" />
                       <span>{item.label}</span>
                     </NavLink>
                   </li>
