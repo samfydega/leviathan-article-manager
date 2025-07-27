@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check, Archive, Trash2, ExternalLink } from "lucide-react";
+import ErrorMessage from "../../components/ErrorMessage";
 
 export default function EntityReviewList({
   entities,
@@ -63,9 +64,28 @@ export default function EntityReviewList({
   };
 
   // Helper function to make API calls
-  const submitEntity = async (entityIndex, status) => {
+  const submitEntity = async (entityIndex, action) => {
     const entity = entities[entityIndex];
     const context = getEntityContext(entity.value, originalText);
+
+    // Determine status based on action
+    let status;
+    if (action === "queue") {
+      status = {
+        phase: "queued",
+        state: "notability",
+      };
+    } else if (action === "backlog") {
+      status = {
+        phase: null,
+        state: "backlogged",
+      };
+    } else if (action === "ignore") {
+      status = {
+        phase: null,
+        state: "ignored",
+      };
+    }
 
     try {
       const response = await fetch("http://localhost:8000/entities/", {
@@ -75,6 +95,7 @@ export default function EntityReviewList({
         },
         body: JSON.stringify({
           entity_name: entity.value,
+          entity_type: entity.type,
           entity_context:
             `${context.before}${context.entity}${context.after}`.trim(),
           status: status,
@@ -241,11 +262,7 @@ export default function EntityReviewList({
               </div>
 
               {/* Error Message */}
-              {entityErrors[index] && (
-                <div className="mt-3 text-sm text-red-600 font-inter bg-red-50 border border-red-200 rounded p-2">
-                  {entityErrors[index]}
-                </div>
-              )}
+              <ErrorMessage message={entityErrors[index]} className="mt-3" />
             </div>
           );
         })}

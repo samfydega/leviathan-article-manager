@@ -17,7 +17,7 @@ export default function QueuedEntitiesList() {
     try {
       setLoading(true);
       const response = await fetch(
-        "http://localhost:8000/entities/status/queue"
+        "http://localhost:8000/entities/status?state=notability&phase=queued"
       );
 
       if (!response.ok) {
@@ -70,6 +70,20 @@ export default function QueuedEntitiesList() {
 
   // Helper function to make API calls
   const submitEntityAction = async (entityId, entityIndex, action) => {
+    // Determine status based on action
+    let status;
+    if (action === "backlog") {
+      status = {
+        phase: null,
+        state: "backlogged",
+      };
+    } else if (action === "ignore") {
+      status = {
+        phase: null,
+        state: "ignored",
+      };
+    }
+
     try {
       const response = await fetch(
         `http://localhost:8000/entities/${entityId}`,
@@ -80,7 +94,7 @@ export default function QueuedEntitiesList() {
           },
           body: JSON.stringify({
             id: entityId,
-            status: action,
+            status: status,
           }),
         }
       );
@@ -118,10 +132,6 @@ export default function QueuedEntitiesList() {
     submitEntityAction(entityId, entityIndex, "ignore");
   };
 
-  const handleRequeue = (entityId, entityIndex) => {
-    submitEntityAction(entityId, entityIndex, "queue");
-  };
-
   // Helper function to generate Wikipedia URL
   const getWikipediaUrl = (entityName) => {
     const formattedName = entityName.replace(/\s+/g, "_");
@@ -144,7 +154,7 @@ export default function QueuedEntitiesList() {
   if (error) {
     return (
       <div className="mt-8">
-        <h2 className="text-2xl font-inter font-semibold text-black mb-4 tracking-tighter">
+        <h2 className="text-2xl font-inter font-medium text-black mb-4 tracking-tighter">
           Queued
         </h2>
         <div className="text-center text-red-600 font-inter py-8">
@@ -209,14 +219,6 @@ export default function QueuedEntitiesList() {
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleRequeue(entity.id, index)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-green-50 hover:text-green-700 transition-colors duration-150 group"
-                  >
-                    <Play className="w-4 h-4 text-green-600 group-hover:text-green-700 transition-colors duration-150" />
-                    Re-queue
-                  </button>
-
                   <button
                     onClick={() => handleBacklog(entity.id, index)}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150 group"

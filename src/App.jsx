@@ -5,6 +5,7 @@ import Draft from "./pages/Draft";
 import Edit from "./pages/Edit";
 import Entities from "./pages/Entities";
 import Notability from "./pages/Notability";
+import All from "./pages/All";
 import TestDocumentEditor from "./pages/TestDocumentEditor";
 import "./App.css";
 
@@ -19,6 +20,7 @@ function App() {
           <Route path="/edit" element={<Edit />} />
           <Route path="/entities" element={<Entities />} />
           <Route path="/notability" element={<Notability />} />
+          <Route path="/all" element={<All />} />
           <Route path="/test-editor" element={<TestDocumentEditor />} />
         </Routes>
       </main>

@@ -11,21 +11,22 @@ function Navigation() {
         { path: "/notability", icon: Star, label: "Notability" },
         { path: "/draft", icon: FileText, label: "Draft" },
         { path: "/edit", icon: Edit3, label: "Edit" },
+        { path: "/all", icon: FileText, label: "All" },
       ],
     },
   ];
 
   return (
     <nav className="w-64 bg-gray-50 border-r border-gray-200 h-screen overflow-y-auto">
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200">
         <img
           src="./serpent3.png"
           alt="Leviathan Encyclopedia"
-          className="w-10 h-10"
+          className="w-14 h-14"
         />
-        <h1 className="text-3xl font-playfair font-medium text-[#554348] tracking-tighter leading-7">
+        {/* <h1 className="text-3xl font-playfair font-medium text-[#554348] tracking-tighter leading-7">
           Leviathan Encyclopedia
-        </h1>
+        </h1> */}
       </div>
 
       <div className="p-4">

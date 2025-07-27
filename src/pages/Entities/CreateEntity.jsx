@@ -41,7 +41,7 @@ export default function CreateEntity({ onBack }) {
   // Helper function for processing entities
   const processEntity = async (text) => {
     try {
-      const response = await fetch("http://localhost:8000/ner", {
+      const response = await fetch("http://localhost:8000/entities/extract", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,6 +86,7 @@ export default function CreateEntity({ onBack }) {
 
     setIsProcessing(true);
     setErrorMessage("");
+    setProcessedEntities(new Set()); // Reset processed entities for new batch
 
     try {
       const result = await processEntity(entityText);

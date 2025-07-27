@@ -71,6 +71,11 @@ export default function Draft() {
       const data = await response.json();
       setDraftedEntities(data);
       setDraftedError(null);
+
+      // Fetch progress for all drafted entities
+      if (data.length > 0) {
+        await fetchProgressForDraftedEntities(data);
+      }
     } catch (error) {
       console.error("Error fetching drafted entities:", error);
       setDraftedError(error.message);
@@ -107,6 +112,36 @@ export default function Draft() {
       }
     });
     setProgressData(newProgressData);
+  };
+
+  // Get progress for drafted entities when refreshing
+  const fetchProgressForDraftedEntities = async (entities) => {
+    const progressPromises = entities.map(async (entity) => {
+      try {
+        const response = await fetch(
+          `http://localhost:8000/articles/${entity.id}/check-progress`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          return { entityId: entity.id, data };
+        }
+      } catch (error) {
+        console.error(
+          `Error fetching progress for drafted entity ${entity.id}:`,
+          error
+        );
+      }
+      return { entityId: entity.id, data: null };
+    });
+
+    const progressResults = await Promise.all(progressPromises);
+    const newProgressData = {};
+    progressResults.forEach(({ entityId, data }) => {
+      if (data) {
+        newProgressData[entityId] = data;
+      }
+    });
+    setProgressData((prev) => ({ ...prev, ...newProgressData }));
   };
 
   // Fetch document content for selected entity
@@ -232,9 +267,25 @@ export default function Draft() {
       }
 
       console.log(`Draft into document successful for entity ${entityId}`);
-      // Refresh both lists since the entity might move to drafted status
-      await fetchDraftingEntities();
-      await fetchDraftedEntities();
+
+      // Immediately move the entity from drafting to drafted section
+      const entityToMove = draftingEntities.find((e) => e.id === entityId);
+      if (entityToMove) {
+        setDraftingEntities((prev) => prev.filter((e) => e.id !== entityId));
+        setDraftedEntities((prev) => [...prev, entityToMove]);
+
+        // Initialize progress data for the moved entity
+        setProgressData((prev) => ({
+          ...prev,
+          [entityId]: {
+            completed_sections: 0,
+            total_sections: 1,
+            progress_percentage: 0,
+            pending_sections: 1,
+            is_complete: false,
+          },
+        }));
+      }
     } catch (error) {
       console.error(
         `Error drafting into document for entity ${entityId}:`,
@@ -265,7 +316,7 @@ export default function Draft() {
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-inter font-medium text-black">
-                Researching Sections
+                Section Research
               </h2>
               <button
                 onClick={() => setResearchingCollapsed(!researchingCollapsed)}
@@ -318,7 +369,7 @@ export default function Draft() {
                               <span className="font-inter font-medium text-gray-900">
                                 {entity.name}
                               </span>
-                              {progress && (
+                              {progress && !progress.is_complete && (
                                 <span className="text-sm font-inter text-gray-500">
                                   {progress.completed_sections}/
                                   {progress.total_sections} sections
@@ -346,7 +397,7 @@ export default function Draft() {
                                   </span>
                                 </div>
 
-                                {progress.is_complete && (
+                                {progress.is_complete ? (
                                   <div className="mt-3 pt-2 border-t border-gray-100">
                                     <button
                                       className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -359,6 +410,21 @@ export default function Draft() {
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                       )}
                                       Draft into document
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="mt-3 pt-2 border-t border-gray-100">
+                                    <button
+                                      onClick={fetchDraftingEntities}
+                                      disabled={loadingDrafting}
+                                      className="px-3 py-1.5 text-sm font-inter text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                      <RefreshCw
+                                        className={`w-4 h-4 ${
+                                          loadingDrafting ? "animate-spin" : ""
+                                        }`}
+                                      />
+                                      Refresh
                                     </button>
                                   </div>
                                 )}
@@ -374,22 +440,6 @@ export default function Draft() {
                       })}
                     </div>
                   )}
-
-                {/* Refresh button */}
-                <div className="mt-4 flex justify-start">
-                  <button
-                    onClick={fetchDraftingEntities}
-                    disabled={loadingDrafting}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <RefreshCw
-                      className={`w-4 h-4 ${
-                        loadingDrafting ? "animate-spin" : ""
-                      }`}
-                    />
-                    Refresh
-                  </button>
-                </div>
               </>
             )}
           </div>
@@ -440,29 +490,106 @@ export default function Draft() {
                   !draftedError &&
                   draftedEntities.length > 0 && (
                     <div className="space-y-3">
-                      {draftedEntities.map((entity) => (
-                        <div
-                          key={entity.id}
-                          className="border border-gray-200 bg-white rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
-                          onClick={() => handleSelectDocument(entity)}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-inter font-medium text-gray-900">
-                              {entity.name}
-                            </span>
-                            <span className="text-sm font-inter text-green-600 bg-green-50 px-2 py-1 rounded">
-                              Ready for editing
-                            </span>
+                      {draftedEntities.map((entity) => {
+                        const progress = progressData[entity.id];
+                        return (
+                          <div
+                            key={entity.id}
+                            className="border border-gray-200 bg-white rounded-lg p-4"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-inter font-medium text-gray-900">
+                                {entity.name}
+                              </span>
+                              {progress && !progress.is_complete && (
+                                <span className="text-sm font-inter text-gray-500">
+                                  {progress.completed_sections}/
+                                  {progress.total_sections} sections
+                                </span>
+                              )}
+                            </div>
+
+                            {progress ? (
+                              <div className="space-y-2">
+                                {progress.is_complete ? (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-inter text-green-600 bg-green-50 px-2 py-1 rounded">
+                                      Ready for editing
+                                    </span>
+                                    <button
+                                      className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150"
+                                      onClick={() =>
+                                        handleSelectDocument(entity)
+                                      }
+                                    >
+                                      Open
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                      <div
+                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                        style={{
+                                          width: `${progress.progress_percentage}%`,
+                                        }}
+                                      ></div>
+                                    </div>
+                                    <div className="flex justify-between text-xs font-inter text-gray-600">
+                                      <span>
+                                        {progress.progress_percentage.toFixed(
+                                          1
+                                        )}
+                                        % complete
+                                      </span>
+                                      <span>
+                                        {progress.pending_sections} pending
+                                      </span>
+                                    </div>
+                                    <div className="mt-3 pt-2 border-t border-gray-100">
+                                      <button
+                                        onClick={async () => {
+                                          await fetchDraftedEntities();
+                                        }}
+                                        disabled={loadingDrafted}
+                                        className="px-3 py-1.5 text-sm font-inter text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                      >
+                                        <RefreshCw
+                                          className={`w-4 h-4 ${
+                                            loadingDrafted ? "animate-spin" : ""
+                                          }`}
+                                        />
+                                        Refresh
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-inter text-green-600 bg-green-50 px-2 py-1 rounded">
+                                  Ready for editing
+                                </span>
+                                <button
+                                  className="px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150"
+                                  onClick={() => handleSelectDocument(entity)}
+                                >
+                                  Open
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
                 {/* Refresh button for drafted entities */}
                 <div className="mt-4 flex justify-start">
                   <button
-                    onClick={fetchDraftedEntities}
+                    onClick={async () => {
+                      await fetchDraftedEntities();
+                    }}
                     disabled={loadingDrafted}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                   >

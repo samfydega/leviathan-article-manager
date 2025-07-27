@@ -1,10 +1,32 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import CreateEntity from "../components/CreateEntity";
-import QueuedEntitiesList from "../components/QueuedEntitiesList";
+import CreateEntity from "./CreateEntity";
+import QueuedEntitiesList from "./QueuedEntitiesList";
 
 export default function Entities() {
   const [isCreating, setIsCreating] = useState(false);
+
+  // Entity label types that can be extracted
+  const entityLabelTypes = [
+    "PERSON",
+    "NORP",
+    "FAC",
+    "ORG",
+    "GPE",
+    "LOC",
+    "PRODUCT",
+    "EVENT",
+    "WORK_OF_ART",
+    "LAW",
+    "LANGUAGE",
+    "DATE",
+    "TIME",
+    "PERCENT",
+    "MONEY",
+    "QUANTITY",
+    "ORDINAL",
+    "CARDINAL",
+  ];
 
   const handleCreateClick = () => {
     setIsCreating(true);
