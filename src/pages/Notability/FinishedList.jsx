@@ -183,7 +183,6 @@ export default function FinishedList({ entities, onStatusUpdate }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            id: entityId,
             status: {
               phase: "queued",
               state: "draft_research",
@@ -198,17 +197,20 @@ export default function FinishedList({ entities, onStatusUpdate }) {
         );
       }
 
-      // Then, call the drafts endpoint
-      const draftResponse = await fetch(`http://localhost:8000/drafts/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: entityId,
-          type: selectedType,
-        }),
-      });
+      // Then, call the drafts research endpoint to create the object
+      const draftResponse = await fetch(
+        `http://localhost:8000/drafts/research/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: entityId,
+            type: selectedType,
+          }),
+        }
+      );
 
       if (!draftResponse.ok) {
         throw new Error(

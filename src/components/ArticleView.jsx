@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
-import { Edit3 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Edit3, Download, Camera } from "lucide-react";
+import { exportComponentAsHTML, downloadHTML } from "../utils/htmlExporter";
+import { captureDOMAsHTML } from "../utils/domExporter";
 import {
   Paragraph,
   SectionHeader,
@@ -20,6 +22,8 @@ function Divider({ className = "mb-4" }) {
 export default function ArticleView({ documentData, onSwitchToEdit }) {
   const [document, setDocument] = useState(null);
   const [globalReferences, setGlobalReferences] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const articleRef = useRef(null);
 
   // Initialize document and process references
   useEffect(() => {
@@ -44,35 +48,141 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
     return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
   };
 
+  // Handle export functionality
+  const handleExport = async () => {
+    if (!document) {
+      alert("No document data available for export");
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // Create a simplified version of the article for export
+      const ArticleContentOnly = ({ documentData }) => (
+        <div className="w-full bg-white">
+          {/* Article Content */}
+          <main className="max-w-none mx-none py-8 bg-white">
+            {/* Document Title */}
+            <div className="mb-4">
+              <h1 className="text-4xl leading-10 tracking-tighter text-[#554348] font-semibold font-playfair mb-2">
+                {documentData.id
+                  .split("-")
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(" ")}
+              </h1>
+              <hr className="border-gray-300 mb-4" />
+            </div>
+
+            {/* Person Infobox */}
+            {documentData.results?.person_infobox && (
+              <div className="mb-8">
+                <div className="border border-gray-200 bg-white rounded-lg p-4">
+                  <h3 className="text-lg font-inter font-medium text-gray-700 mb-3">
+                    {documentData.results.person_infobox.name ||
+                      "Person Information"}
+                  </h3>
+                </div>
+              </div>
+            )}
+
+            {/* Document Sections */}
+            {(() => {
+              const sectionOrder = [
+                "lead",
+                "early_life",
+                "career",
+                "notable_investments",
+                "personal_life",
+              ];
+
+              const orderedSections = sectionOrder
+                .filter((sectionName) => documentData.results?.[sectionName])
+                .map((sectionName) => [
+                  sectionName,
+                  documentData.results[sectionName],
+                ]);
+
+              const remainingSections = Object.entries(
+                documentData.results || {}
+              ).filter(
+                ([sectionName]) =>
+                  sectionName !== "person_infobox" &&
+                  !sectionOrder.includes(sectionName)
+              );
+
+              const allSections = [...orderedSections, ...remainingSections];
+
+              return allSections.map(([sectionName, section]) => {
+                if (sectionName === "person_infobox") return null;
+
+                return (
+                  <div key={sectionName} className="mb-8">
+                    <div className="space-y-4">
+                      {section.blocks &&
+                        section.blocks.map((block, blockIndex) => (
+                          <div key={blockIndex}>
+                            {renderBlock(block, sectionName, blockIndex)}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </main>
+        </div>
+      );
+
+      const htmlContent = exportComponentAsHTML(ArticleContentOnly, {
+        documentData: document,
+      });
+      const filename = `${document.id}-article.html`;
+
+      downloadHTML(htmlContent, filename);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Process all references from all sections and create global reference list
   const processGlobalReferences = (doc) => {
     const allReferences = [];
     const referenceMap = new Map();
 
     // Collect all references from all sections
-    Object.values(doc.sections).forEach((section) => {
-      if (section.references) {
-        section.references.forEach((ref) => {
-          const key = `${ref.title}-${ref.url}`;
-          if (!referenceMap.has(key)) {
-            referenceMap.set(key, {
-              ...ref,
-              globalId: allReferences.length + 1,
-            });
-            allReferences.push({ ...ref, globalId: allReferences.length + 1 });
-          }
-        });
-      }
-    });
+    if (doc.results) {
+      Object.values(doc.results).forEach((section) => {
+        if (section && section.references) {
+          section.references.forEach((ref) => {
+            const key = `${ref.title}-${ref.url}`;
+            if (!referenceMap.has(key)) {
+              referenceMap.set(key, {
+                ...ref,
+                globalId: allReferences.length + 1,
+              });
+              allReferences.push({
+                ...ref,
+                globalId: allReferences.length + 1,
+              });
+            }
+          });
+        }
+      });
+    }
 
     setGlobalReferences(allReferences);
   };
 
   // Get global reference ID for a citation
   const getGlobalReferenceId = (sectionName, localId) => {
-    if (!document || !document.sections[sectionName]) return localId;
+    if (!document || !document.results || !document.results[sectionName])
+      return localId;
 
-    const sectionRef = document.sections[sectionName].references?.find(
+    const sectionRef = document.results[sectionName].references?.find(
       (r) => r.id === localId
     );
     if (!sectionRef) return localId;
@@ -307,7 +417,7 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
     <div className="w-full bg-white">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 px-2 py-4 z-10">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={onSwitchToEdit}
@@ -315,6 +425,18 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
             >
               <Edit3 className="w-4 h-4" />
               Edit Article
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50"
+              title="Export article as HTML file"
+            >
+              <Download className="w-4 h-4" />
+              {isExporting ? "Exporting..." : "Export HTML"}
             </button>
           </div>
         </div>
@@ -334,21 +456,20 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
         </div>
 
         {/* Person Infobox */}
-        {document.sections.person_infobox &&
-          renderPersonInfobox(document.sections.person_infobox)}
+        {document.results?.person_infobox &&
+          renderPersonInfobox(document.results.person_infobox)}
 
         {/* Document Sections */}
         {(() => {
           const sectionOrder = getSectionOrder();
           const orderedSections = sectionOrder
-            .filter((sectionName) => document.sections[sectionName])
-            .map((sectionName) => [
-              sectionName,
-              document.sections[sectionName],
-            ]);
+            .filter((sectionName) => document.results?.[sectionName])
+            .map((sectionName) => [sectionName, document.results[sectionName]]);
 
           // Add any remaining sections that aren't in the predefined order
-          const remainingSections = Object.entries(document.sections).filter(
+          const remainingSections = Object.entries(
+            document.results || {}
+          ).filter(
             ([sectionName]) =>
               sectionName !== "person_infobox" &&
               !sectionOrder.includes(sectionName)
