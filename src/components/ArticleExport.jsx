@@ -1,7 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { Edit3, Download } from "lucide-react";
-import { exportComponentAsSSR, downloadHTML } from "../utils/ssrExporter";
-import ArticleExport from "./ArticleExport";
+import { useState, useEffect } from "react";
 import {
   Paragraph,
   SectionHeader,
@@ -19,10 +16,9 @@ function Divider({ className = "mb-4" }) {
   return <hr className={`border-gray-300 ${className}`} />;
 }
 
-export default function ArticleView({ documentData, onSwitchToEdit }) {
+export default function ArticleExport({ documentData }) {
   const [document, setDocument] = useState(null);
   const [globalReferences, setGlobalReferences] = useState([]);
-  const [isExporting, setIsExporting] = useState(false);
 
   // Initialize document and process references
   useEffect(() => {
@@ -45,31 +41,6 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
   const toSentenceCase = (text) => {
     if (!text) return text;
     return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-  };
-
-  // Handle export functionality
-  const handleExport = async () => {
-    if (!document) {
-      alert("No document data available for export");
-      return;
-    }
-
-    setIsExporting(true);
-
-    try {
-      // Use SSR export with the dedicated export component
-      const htmlContent = exportComponentAsSSR(ArticleExport, {
-        documentData: document,
-      });
-      const filename = `${document.id}-article.html`;
-
-      downloadHTML(htmlContent, filename);
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert(`Export failed: ${error.message}`);
-    } finally {
-      setIsExporting(false);
-    }
   };
 
   // Process all references from all sections and create global reference list
@@ -252,10 +223,6 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
   const renderPersonInfobox = (personData) => {
     if (!personData) return null;
 
-    // Debug: Log person data to check for image_url
-    console.log("Person infobox data:", personData);
-    console.log("image_url field:", personData.image_url);
-
     // Format birth information
     const formatBirthInfo = (born) => {
       if (!born) return null;
@@ -339,33 +306,6 @@ export default function ArticleView({ documentData, onSwitchToEdit }) {
 
   return (
     <div className="w-full bg-white">
-      {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 px-2 py-4 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onSwitchToEdit}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150"
-            >
-              <Edit3 className="w-4 h-4" />
-              Edit Article
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleExport}
-              disabled={isExporting}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-inter text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50"
-              title="Export article as HTML file"
-            >
-              <Download className="w-4 h-4" />
-              {isExporting ? "Exporting..." : "Export HTML"}
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Article Content */}
       <main className="max-w-none mx-none py-8 bg-white">
         {/* Document Title */}

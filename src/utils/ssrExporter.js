@@ -1,14 +1,18 @@
 import { renderToString } from "react-dom/server";
-import { createElement } from "react";
+import React from "react";
 
-// Function to capture React component as static HTML
-export const exportComponentAsHTML = (component, props = {}) => {
-  try {
-    // Render the React component to HTML string
-    const htmlString = renderToString(createElement(component, props));
+// Create a standalone component for export that includes all necessary styles
+export const createExportComponent = (Component, props) => {
+  return React.createElement(Component, props);
+};
 
-    // Create a complete HTML document with necessary styles and scripts
-    const fullHTML = `
+// Export component as HTML with full styling
+export const exportComponentAsSSR = (Component, props = {}) => {
+  // Render the component to HTML string
+  const componentHTML = renderToString(React.createElement(Component, props));
+
+  // Create complete HTML document with all necessary styles
+  const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -186,63 +190,37 @@ export const exportComponentAsHTML = (component, props = {}) => {
             background-color: #f9fafb;
             font-weight: 600;
         }
+        
+        /* Ensure images are properly sized */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Remove any remaining interactive styles */
+        button, input, select, textarea {
+            pointer-events: none;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
-    ${htmlString}
+    ${componentHTML}
 </body>
 </html>`;
 
-    return fullHTML;
-  } catch (error) {
-    console.error("Error exporting component as HTML:", error);
-    throw error;
-  }
+  return htmlContent;
 };
 
-// Function to download the HTML as a file
-export const downloadHTML = (
-  htmlContent,
-  filename = "exported-article.html"
-) => {
+// Download HTML content as a file
+export const downloadHTML = (htmlContent, filename) => {
   const blob = new Blob([htmlContent], { type: "text/html" });
   const url = URL.createObjectURL(blob);
-
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-
   URL.revokeObjectURL(url);
-};
-
-// Function to save HTML to a specific folder (requires backend support)
-export const saveHTMLToFolder = async (
-  htmlContent,
-  filename = "exported-article.html"
-) => {
-  try {
-    const response = await fetch("/api/export-html", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        html: htmlContent,
-        filename: filename,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to save HTML file");
-    }
-
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error("Error saving HTML to folder:", error);
-    throw error;
-  }
 };
